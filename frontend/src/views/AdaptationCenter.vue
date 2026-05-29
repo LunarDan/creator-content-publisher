@@ -23,22 +23,17 @@
 import { onMounted, ref } from 'vue'
 import AppLayout from '../components/AppLayout.vue'
 import { contentApi } from '../api/content'
-import { platformApi } from '../api/platform'
+import { platformName } from '../utils/platform'
 import { useContentStore } from '../stores/content'
 
 const store = useContentStore()
 const drafts = ref([])
-const platforms = ref([])
 
 onMounted(async () => {
-  platforms.value = (await platformApi.list()).data.data
+  store.restoreCurrentContentId()
   if (store.currentContentId) {
-    drafts.value = (await contentApi.drafts(store.currentContentId)).data.data
+    drafts.value = (await contentApi.drafts(store.currentContentId)).data.data || []
     store.drafts = drafts.value
   }
 })
-
-function platformName(key) {
-  return platforms.value.find(p => p.key === key)?.name || key
-}
 </script>
