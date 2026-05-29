@@ -52,3 +52,17 @@ class ContentService:
         if not draft:
             return None
         return self.tasks.create_simulated(draft)
+
+    def simulate_publish_batch(self, draft_ids):
+        results = []
+        for draft_id in draft_ids:
+            task = self.simulate_publish(draft_id)
+            if task:
+                results.append(task)
+            else:
+                results.append({
+                    'platform_draft_id': draft_id,
+                    'status': 'failed',
+                    'error_message': '平台草稿不存在',
+                })
+        return results

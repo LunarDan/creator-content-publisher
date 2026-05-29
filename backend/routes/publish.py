@@ -18,6 +18,15 @@ def simulate_publish():
     return jsonify({'code': 200, 'data': task})
 
 
+@bp.post('/api/publish/simulate-batch')
+def simulate_publish_batch():
+    data = request.get_json(force=True)
+    draft_ids = data.get('platform_draft_ids') or []
+    if not draft_ids:
+        return jsonify({'code': 400, 'msg': '请选择要发布的平台草稿'}), 400
+    return jsonify({'code': 200, 'data': service.simulate_publish_batch(draft_ids)})
+
+
 @bp.get('/api/publish/tasks')
 def list_tasks():
     return jsonify({'code': 200, 'data': service.tasks.list()})
