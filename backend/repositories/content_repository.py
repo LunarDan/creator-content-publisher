@@ -58,9 +58,21 @@ class ContentRepository:
 
     def delete(self, content_id):
         with get_connection() as conn:
-            cursor = conn.execute('DELETE FROM contents WHERE id = ?', (content_id,))
+            content = conn.execute('SELECT id FROM contents WHERE id = ?', (content_id,)).fetchone()
+            if not content:
+                return False
+
+            conn.execute(
+                '''DELETE FROM publish_tasks
+                   WHERE platform_draft_id IN (
+                       SELECT id FROM platform_drafts WHERE content_id = ?
+                   )''',
+                (content_id,),
+            )
+            conn.execute('DELETE FROM platform_drafts WHERE content_id = ?', (content_id,))
+            conn.execute('DELETE FROM contents WHERE id = ?', (content_id,))
             conn.commit()
-            return cursor.rowcount > 0
+            return True
 
     def _decode(self, row):
         if not row:
