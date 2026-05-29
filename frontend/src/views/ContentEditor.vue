@@ -23,7 +23,10 @@
             <el-checkbox v-for="p in platforms" :key="p.key" :label="p.key">{{ p.name }}</el-checkbox>
           </el-checkbox-group>
         </el-form-item>
-        <el-button type="primary" @click="saveAndAdapt">保存并生成平台草稿</el-button>
+        <div class="form-actions">
+          <el-button type="primary" @click="saveAndAdapt">保存并生成平台草稿</el-button>
+          <el-button @click="fillDemoContent">填入示例内容</el-button>
+        </div>
       </el-form>
     </el-card>
   </AppLayout>
@@ -50,6 +53,21 @@ onMounted(async () => {
   platforms.value = res.data.data
 })
 
+function fillDemoContent() {
+  form.title = '如何用 AI 工具提升创作者内容分发效率'
+  form.summary = '本文介绍创作者如何借助 AI 完成多平台内容改写、预览和发布。'
+  form.body = `随着内容平台越来越多，创作者需要面对不同平台的标题长度、表达风格和内容结构要求。
+
+本工具通过统一内容输入、多平台自动适配、草稿预览编辑和模拟发布流程，帮助创作者减少重复劳动。
+
+首先，用户只需要输入一份原始内容。系统会根据公众号、知乎、B站、小红书等平台特点，自动生成不同风格的草稿。
+
+其次，用户可以在预览中心对草稿进行人工微调，保证内容质量和平台表达效果。
+
+最后，用户可以通过发布中心一键模拟发布，并在发布历史中查看每个平台的发布记录。`
+  tagText.value = 'AI,内容创作,效率工具,自媒体'
+}
+
 async function saveAndAdapt() {
   if (!form.title || !form.body) {
     ElMessage.warning('请填写标题和正文')
@@ -59,7 +77,7 @@ async function saveAndAdapt() {
   const created = await contentApi.create(payload)
   const contentId = created.data.data.id
   await contentApi.adapt(contentId, selectedPlatforms.value)
-  store.currentContentId = contentId
+  store.setCurrentContentId(contentId)
   ElMessage.success('已生成平台草稿')
   router.push('/adaptation-center')
 }

@@ -24,7 +24,7 @@
       <el-checkbox-group v-model="selectedDraftIds" class="draft-grid">
         <el-card v-for="draft in store.drafts" :key="draft.id" class="publish-card">
           <div class="card-header">
-            <el-checkbox :label="draft.id">{{ draft.platform }}</el-checkbox>
+            <el-checkbox :label="draft.id">{{ platformName(draft.platform) }}</el-checkbox>
             <el-tag type="success">模拟发布</el-tag>
           </div>
           <h3>{{ draft.title }}</h3>
@@ -45,14 +45,21 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import AppLayout from '../components/AppLayout.vue'
 import { publishApi } from '../api/publish'
+import { contentApi } from '../api/content'
 import { useContentStore } from '../stores/content'
+import { platformName } from '../utils/platform'
 
 const router = useRouter()
 const store = useContentStore()
 const selectedDraftIds = ref([])
 const publishing = ref(false)
 
-onMounted(() => {
+onMounted(async () => {
+  store.restoreCurrentContentId()
+  if (!store.drafts.length && store.currentContentId) {
+    const res = await contentApi.drafts(store.currentContentId)
+    store.drafts = res.data.data || []
+  }
   selectAll()
 })
 

@@ -10,7 +10,7 @@
       <el-card v-for="draft in store.drafts" :key="draft.id" class="preview-card">
         <template #header>
           <div class="card-header">
-            <span class="platform-pill">{{ draft.platform }}</span>
+            <span class="platform-pill">{{ platformName(draft.platform) }}</span>
             <el-button type="primary" size="small" :loading="savingId === draft.id" @click="saveDraft(draft)">
               保存修改
             </el-button>
@@ -53,15 +53,17 @@ import { ElMessage } from 'element-plus'
 import AppLayout from '../components/AppLayout.vue'
 import { contentApi } from '../api/content'
 import { useContentStore } from '../stores/content'
+import { platformName } from '../utils/platform'
 
 const store = useContentStore()
 const editForms = reactive({})
 const savingId = ref(null)
 
 onMounted(async () => {
+  store.restoreCurrentContentId()
   if (!store.drafts.length && store.currentContentId) {
     const res = await contentApi.drafts(store.currentContentId)
-    store.drafts = res.data.data
+    store.drafts = res.data.data || []
   }
   initEditForms()
 })

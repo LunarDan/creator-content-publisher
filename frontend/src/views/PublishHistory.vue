@@ -5,7 +5,11 @@
       <p>查看模拟发布和后续真实发布任务。</p>
     </div>
     <el-table :data="tasks" border>
-      <el-table-column prop="platform" label="平台" />
+      <el-table-column label="平台" width="120">
+        <template #default="{ row }">
+          <span>{{ platformName(row.platform) }}</span>
+        </template>
+      </el-table-column>
       <el-table-column prop="title" label="标题" />
       <el-table-column prop="mode" label="模式" width="110" />
       <el-table-column label="状态" width="120">
@@ -32,6 +36,7 @@
 import { onMounted, ref } from 'vue'
 import AppLayout from '../components/AppLayout.vue'
 import { publishApi } from '../api/publish'
+import { platformName } from '../utils/platform'
 
 const tasks = ref([])
 onMounted(async () => {
