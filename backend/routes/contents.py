@@ -55,3 +55,11 @@ def adapt_content(content_id):
 @bp.get('/api/contents/<int:content_id>/platform-drafts')
 def list_platform_drafts(content_id):
     return jsonify({'code': 200, 'data': service.list_platform_drafts(content_id)})
+
+
+@bp.put('/api/platform-drafts/<int:draft_id>')
+def update_platform_draft(draft_id):
+    draft = service.update_platform_draft(draft_id, request.get_json(force=True))
+    if not draft:
+        return jsonify({'code': 404, 'msg': '草稿不存在'}), 404
+    return jsonify({'code': 200, 'data': draft})
