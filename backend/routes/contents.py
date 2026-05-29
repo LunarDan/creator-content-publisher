@@ -35,6 +35,14 @@ def update_content(content_id):
     return jsonify({'code': 200, 'data': content})
 
 
+@bp.delete('/api/contents/<int:content_id>')
+def delete_content(content_id):
+    deleted = service.delete_content(content_id)
+    if not deleted:
+        return jsonify({'code': 404, 'msg': '内容不存在'}), 404
+    return jsonify({'code': 200, 'data': True})
+
+
 @bp.post('/api/contents/<int:content_id>/adapt')
 def adapt_content(content_id):
     data = request.get_json(silent=True) or {}

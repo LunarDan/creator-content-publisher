@@ -56,6 +56,12 @@ class ContentRepository:
             conn.commit()
         return self.get(content_id)
 
+    def delete(self, content_id):
+        with get_connection() as conn:
+            cursor = conn.execute('DELETE FROM contents WHERE id = ?', (content_id,))
+            conn.commit()
+            return cursor.rowcount > 0
+
     def _decode(self, row):
         if not row:
             return None
