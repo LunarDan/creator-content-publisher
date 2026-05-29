@@ -22,6 +22,9 @@ class ContentService:
     def update_content(self, content_id, data):
         return self.contents.update(content_id, data)
 
+    def delete_content(self, content_id):
+        return self.contents.delete(content_id)
+
     def adapt_content(self, content_id, platforms):
         content = self.contents.get(content_id)
         if not content:
