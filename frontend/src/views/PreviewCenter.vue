@@ -17,11 +17,11 @@
           </div>
         </template>
 
-        <div class="preview-layout">
+        <div v-if="editForms[draft.id]" class="preview-layout">
           <div class="preview-pane">
-            <h2>{{ editForms[draft.id]?.title || draft.title }}</h2>
-            <p class="muted">{{ editForms[draft.id]?.summary || '暂无摘要' }}</p>
-            <p class="preview-body">{{ editForms[draft.id]?.body || draft.body }}</p>
+            <h2>{{ editForms[draft.id].title || draft.title }}</h2>
+            <p class="muted">{{ editForms[draft.id].summary || '暂无摘要' }}</p>
+            <p class="preview-body">{{ editForms[draft.id].body || draft.body }}</p>
             <div class="tag-row">
               <el-tag v-for="tag in previewTags(draft.id)" :key="tag">{{ tag }}</el-tag>
             </div>
