@@ -97,7 +97,7 @@ async function loadDashboard() {
 }
 
 async function openDrafts(content, path) {
-  store.currentContentId = content.id
+  store.setCurrentContentId(content.id)
   const res = await contentApi.drafts(content.id)
   store.drafts = res.data.data || []
   router.push(path)
@@ -112,8 +112,7 @@ async function deleteContent(content) {
     )
     await contentApi.delete(content.id)
     if (store.currentContentId === content.id) {
-      store.currentContentId = null
-      store.drafts = []
+      store.clearCurrentContent()
     }
     ElMessage.success('内容已删除')
     await loadDashboard()
