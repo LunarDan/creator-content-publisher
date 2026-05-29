@@ -1,0 +1,10 @@
+{
+  "name": "creator-content-publisher",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev:frontend": "npm --prefix frontend run dev",
+    "build:frontend": "npm --prefix frontend run build",
+    "dev:backend": "python backend/app.py"
+  }
+}
