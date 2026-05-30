@@ -5,7 +5,35 @@
       <p>配置 AI 改写、平台账号、真实发布策略和模板。</p>
     </div>
 
-    <el-card>
+    <el-card class="settings-card">
+      <template #header>
+        <div class="card-header">
+          <span>公众号草稿发布</span>
+          <el-button type="primary" :loading="checkingWechat" @click="checkWechatToken">检测微信配置</el-button>
+        </div>
+      </template>
+      <el-alert
+        type="info"
+        show-icon
+        :closable="false"
+        title="测试号阶段只需要 AppID 和 AppSecret 即可检测 access_token；正式创建草稿还需要默认封面素材 ID。"
+      />
+      <el-descriptions class="settings-desc" border :column="1">
+        <el-descriptions-item label="WECHAT_APP_ID">测试号 / 公众号 AppID</el-descriptions-item>
+        <el-descriptions-item label="WECHAT_APP_SECRET">测试号 / 公众号 AppSecret</el-descriptions-item>
+        <el-descriptions-item label="WECHAT_DEFAULT_THUMB_MEDIA_ID">正式公众号草稿默认封面素材 ID，测试号阶段可先留空</el-descriptions-item>
+      </el-descriptions>
+      <el-alert
+        v-if="wechatCheckMessage"
+        class="settings-alert"
+        :type="wechatCheckType"
+        show-icon
+        :closable="false"
+        :title="wechatCheckMessage"
+      />
+    </el-card>
+
+    <el-card class="settings-card">
       <template #header>B站浏览器发布</template>
       <el-alert
         type="warning"
@@ -26,11 +54,46 @@
 </template>
 
 <script setup>
+import { ref } from 'vue'
+import { ElMessage } from 'element-plus'
 import AppLayout from '../components/AppLayout.vue'
+import { publishApi } from '../api/publish'
+
+const checkingWechat = ref(false)
+const wechatCheckMessage = ref('')
+const wechatCheckType = ref('success')
+
+async function checkWechatToken() {
+  checkingWechat.value = true
+  try {
+    const res = await publishApi.wechatTokenCheck()
+    wechatCheckType.value = 'success'
+    wechatCheckMessage.value = res.data.data.message
+    ElMessage.success('微信配置检测通过')
+  } catch (error) {
+    wechatCheckType.value = 'error'
+    wechatCheckMessage.value = error.response?.data?.msg || '微信配置检测失败'
+    ElMessage.error(wechatCheckMessage.value)
+  } finally {
+    checkingWechat.value = false
+  }
+}
 </script>
 
 <style scoped>
-.settings-steps {
+.settings-card + .settings-card {
+  margin-top: 16px;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.settings-desc,
+.settings-steps,
+.settings-alert {
   margin-top: 16px;
 }
 </style>

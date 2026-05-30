@@ -1,3 +1,4 @@
+import json
 import uuid
 
 from ..db import get_connection, row_to_dict
@@ -33,6 +34,18 @@ class PublishTaskRepository:
             conn.commit()
         return self.get(task_id)
 
+    def create_wechat_draft(self, draft):
+        task_id = str(uuid.uuid4())
+        with get_connection() as conn:
+            conn.execute(
+                '''INSERT INTO publish_tasks
+                   (id, content_id, platform_draft_id, platform, mode, status, title, publish_url)
+                   VALUES (?, ?, ?, ?, 'wechat_draft', 'pending', ?, '')''',
+                (task_id, draft['content_id'], draft['id'], draft['platform'], draft['title']),
+            )
+            conn.commit()
+        return self.get(task_id)
+
     def mark_running(self, task_id):
         with get_connection() as conn:
             conn.execute(
@@ -55,24 +68,26 @@ class PublishTaskRepository:
             conn.commit()
         return self.get(task_id)
 
-    def mark_success(self, task_id, publish_url=''):
+    def mark_success(self, task_id, publish_url='', external_id='', response_payload=None):
+        payload = json.dumps(response_payload or {}, ensure_ascii=False)
         with get_connection() as conn:
             conn.execute(
                 '''UPDATE publish_tasks
-                   SET status = 'success', publish_url = ?, error_message = '', finished_at = CURRENT_TIMESTAMP
+                   SET status = 'success', publish_url = ?, external_id = ?, response_payload = ?, error_message = '', finished_at = CURRENT_TIMESTAMP
                    WHERE id = ?''',
-                (publish_url, task_id),
+                (publish_url, external_id, payload, task_id),
             )
             conn.commit()
         return self.get(task_id)
 
-    def mark_failed(self, task_id, error_message):
+    def mark_failed(self, task_id, error_message, response_payload=None):
+        payload = json.dumps(response_payload or {}, ensure_ascii=False)
         with get_connection() as conn:
             conn.execute(
                 '''UPDATE publish_tasks
-                   SET status = 'failed', error_message = ?, finished_at = CURRENT_TIMESTAMP
+                   SET status = 'failed', error_message = ?, response_payload = ?, finished_at = CURRENT_TIMESTAMP
                    WHERE id = ?''',
-                (error_message, task_id),
+                (error_message, payload, task_id),
             )
             conn.commit()
         return self.get(task_id)
