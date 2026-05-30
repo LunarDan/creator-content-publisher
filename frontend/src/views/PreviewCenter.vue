@@ -88,12 +88,21 @@ const savingId = ref(null)
 
 onMounted(async () => {
   store.restoreCurrentContentId()
-  if (!store.drafts.length && store.currentContentId) {
-    const res = await contentApi.drafts(store.currentContentId)
-    store.drafts = res.data.data || []
+  if (store.currentContentId) {
+    await loadDraftsWithKuaishou()
   }
   initEditForms()
 })
+
+async function loadDraftsWithKuaishou() {
+  const res = await contentApi.drafts(store.currentContentId)
+  store.drafts = res.data.data || []
+  if (!store.drafts.some(draft => draft.platform === 'kuaishou')) {
+    const adaptRes = await contentApi.adapt(store.currentContentId, ['kuaishou'])
+    const kuaishouDrafts = adaptRes.data.data || []
+    store.drafts = [...store.drafts, ...kuaishouDrafts.filter(draft => !store.drafts.some(item => item.id === draft.id))]
+  }
+}
 
 function initEditForms() {
   store.drafts.forEach((draft) => {

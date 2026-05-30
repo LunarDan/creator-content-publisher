@@ -31,7 +31,11 @@
           <span>{{ row.external_id || '-' }}</span>
         </template>
       </el-table-column>
-      <el-table-column prop="created_at" label="创建时间" min-width="160" />
+      <el-table-column label="创建时间" min-width="180">
+        <template #default="{ row }">
+          <span>{{ formatLocalTime(row.created_at) }}</span>
+        </template>
+      </el-table-column>
       <el-table-column label="操作" width="160">
         <template #default="{ row }">
           <el-button
@@ -57,6 +61,15 @@ import { platformName } from '../utils/platform'
 
 const tasks = ref([])
 onMounted(loadTasks)
+
+function formatLocalTime(value) {
+  if (!value) return '-'
+  const normalized = value.includes('T') ? value : value.replace(' ', 'T')
+  const withTimezone = /([zZ]|[+-]\d\d:\d\d)$/.test(normalized) ? normalized : `${normalized}Z`
+  const date = new Date(withTimezone)
+  if (Number.isNaN(date.getTime())) return value
+  return date.toLocaleString('zh-CN', { hour12: false })
+}
 
 async function loadTasks() {
   tasks.value = (await publishApi.tasks()).data.data

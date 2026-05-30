@@ -31,7 +31,7 @@
           </el-checkbox-group>
         </el-form-item>
         <div class="form-actions">
-          <el-button type="primary" @click="saveAndAdapt">保存并生成平台草稿</el-button>
+          <el-button type="primary" :loading="saving" @click="saveAndAdapt">保存并生成平台草稿</el-button>
           <el-button @click="fillDemoContent">填入示例内容</el-button>
         </div>
       </el-form>
@@ -54,6 +54,7 @@ const platforms = ref([])
 const selectedPlatforms = ref(['wechat_official', 'zhihu', 'bilibili', 'xiaohongshu', 'douyin', 'kuaishou'])
 const tagText = ref('')
 const form = reactive({ title: '', summary: '', body: '', content_type: 'article', cover_image: '', video_path: '' })
+const saving = ref(false)
 
 onMounted(async () => {
   const res = await platformApi.list()
@@ -80,13 +81,18 @@ async function saveAndAdapt() {
     ElMessage.warning('请填写标题和正文')
     return
   }
-  const payload = { ...form, tags: tagText.value.split(/[,，]/).map(t => t.trim()).filter(Boolean) }
-  const created = await contentApi.create(payload)
-  const contentId = created.data.data.id
-  await contentApi.adapt(contentId, selectedPlatforms.value)
-  store.setCurrentContentId(contentId)
-  ElMessage.success('已生成平台草稿')
-  router.push('/adaptation-center')
+  saving.value = true
+  try {
+    const payload = { ...form, tags: tagText.value.split(/[,，]/).map(t => t.trim()).filter(Boolean) }
+    const created = await contentApi.create(payload)
+    const contentId = created.data.data.id
+    await contentApi.adapt(contentId, selectedPlatforms.value)
+    store.setCurrentContentId(contentId)
+    ElMessage.success('已生成平台草稿')
+    router.push('/adaptation-center')
+  } finally {
+    saving.value = false
+  }
 }
 </script>
 
