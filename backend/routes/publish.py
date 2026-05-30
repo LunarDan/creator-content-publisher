@@ -34,7 +34,8 @@ def publish_bilibili_with_browser():
     if not draft_id:
         return jsonify({'code': 400, 'msg': '缺少平台草稿ID'}), 400
 
-    result, error = service.publish_bilibili_with_browser(draft_id)
+    auto_publish = data.get('auto_publish', True)
+    result, error = service.publish_bilibili_with_browser(draft_id, auto_publish=auto_publish)
     if error:
         status = 404 if error == '平台草稿不存在' else 400
         return jsonify({'code': status, 'msg': error, 'data': result}), status

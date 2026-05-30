@@ -20,6 +20,11 @@ class BilibiliAdapter(BaseAdapter):
             'body': body,
             'tags': tags,
             'cover_image': content.get('cover_image', ''),
-            'extra_config': {'layout': 'video_description', 'tone': 'community', 'video_path': content.get('video_path', '')},
+            'extra_config': {
+                'layout': 'video_description',
+                'tone': 'community',
+                'video_path': content.get('video_path', ''),
+                'creation_declaration': 'no_label',
+            },
             'validation_warnings': warnings,
         }
