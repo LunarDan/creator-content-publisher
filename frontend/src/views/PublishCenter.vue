@@ -17,6 +17,7 @@
             <el-button @click="selectAll">全选</el-button>
             <el-button @click="clearSelection">清空</el-button>
             <el-button type="primary" :loading="publishing" @click="simulateBatch">一键模拟发布</el-button>
+            <el-button type="success" :loading="realPublishing" @click="publishSelectedDrafts">一键发布多平台</el-button>
           </div>
         </div>
       </el-card>
@@ -165,6 +166,7 @@ const router = useRouter()
 const store = useContentStore()
 const selectedDraftIds = ref([])
 const publishing = ref(false)
+const realPublishing = ref(false)
 const wechatPublishingId = ref(null)
 const wechatDialogVisible = ref(false)
 const wechatResult = ref(null)
@@ -186,12 +188,21 @@ const browserDialogTip = computed(() => {
 
 onMounted(async () => {
   store.restoreCurrentContentId()
-  if (!store.drafts.length && store.currentContentId) {
-    const res = await contentApi.drafts(store.currentContentId)
-    store.drafts = res.data.data || []
+  if (store.currentContentId) {
+    await loadDraftsWithKuaishou()
   }
   selectAll()
 })
+
+async function loadDraftsWithKuaishou() {
+  const res = await contentApi.drafts(store.currentContentId)
+  store.drafts = res.data.data || []
+  if (!store.drafts.some(draft => draft.platform === 'kuaishou')) {
+    const adaptRes = await contentApi.adapt(store.currentContentId, ['kuaishou'])
+    const kuaishouDrafts = adaptRes.data.data || []
+    store.drafts = [...store.drafts, ...kuaishouDrafts.filter(draft => !store.drafts.some(item => item.id === draft.id))]
+  }
+}
 
 function selectAll() {
   selectedDraftIds.value = store.drafts.map(draft => draft.id)
@@ -221,6 +232,47 @@ async function simulateBatch() {
   } finally {
     publishing.value = false
   }
+}
+
+async function publishSelectedDrafts() {
+  if (!selectedDraftIds.value.length) {
+    ElMessage.warning('请先选择要发布的平台草稿')
+    return
+  }
+
+  realPublishing.value = true
+  try {
+    const selected = store.drafts.filter(draft => selectedDraftIds.value.includes(draft.id))
+    const results = await Promise.allSettled(selected.map(draft => publishDraft(draft)))
+    const failedCount = results.filter(result => result.status === 'rejected').length
+    if (failedCount) {
+      ElMessage.warning(`已同时启动发布助手，其中 ${failedCount} 个平台启动失败`)
+    } else {
+      ElMessage.success('已同时启动所选平台发布助手')
+    }
+    router.push('/publish-history')
+  } finally {
+    realPublishing.value = false
+  }
+}
+
+function publishDraft(draft) {
+  if (draft.platform === 'wechat_official') {
+    return publishApi.wechatDraft(draft.id)
+  }
+  if (draft.platform === 'zhihu') {
+    return publishApi.browserZhihu(draft.id, false)
+  }
+  if (draft.platform === 'douyin') {
+    return publishApi.browserDouyin(draft.id, true)
+  }
+  if (draft.platform === 'bilibili') {
+    return publishApi.browserBilibili(draft.id, true)
+  }
+  if (draft.platform === 'kuaishou') {
+    return publishApi.browserKuaishou(draft.id)
+  }
+  return publishApi.simulate(draft.id)
 }
 
 async function saveWechatDraft(draft) {
