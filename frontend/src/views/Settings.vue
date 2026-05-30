@@ -52,6 +52,24 @@
     </el-card>
 
     <el-card class="settings-card">
+      <template #header>知乎发布助手</template>
+      <el-alert
+        type="warning"
+        show-icon
+        :closable="false"
+        title="知乎当前仅作为发布助手：系统会打开创作页、辅助填充内容，并在遇到风控或验证码时停下等待人工处理，不会自动点击最终发布按钮。"
+      />
+      <el-steps class="settings-steps" direction="vertical" :active="4">
+        <el-step title="首次使用时，点击知乎发布助手后在打开的知乎创作页手动登录" />
+        <el-step title="登录态会保存在本机浏览器数据目录 backend/data/browser/zhihu，类似普通浏览器缓存" />
+        <el-step title="系统会尝试打开专栏写作页或创作中心，并填充标题和正文" />
+        <el-step title="系统默认不会自动点击最终发布按钮；如果需要栏目/话题/实名校验，请你人工处理" />
+        <el-step title="如果自动填充后未确认成功，请在知乎页面人工检查并完成保存或发布" />
+        <el-step title="完成后可在系统里确认任务完成并记录到发布历史" />
+      </el-steps>
+    </el-card>
+
+    <el-card class="settings-card">
       <template #header>抖音浏览器辅助发布</template>
       <el-alert
         type="warning"

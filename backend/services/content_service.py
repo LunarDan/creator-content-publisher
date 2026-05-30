@@ -131,6 +131,54 @@ class ContentService:
             task = self.tasks.mark_manual_pending(task['id'], result['message'])
         return {'task': task, 'result': result}, None
 
+    def publish_zhihu_with_browser(self, draft_id, auto_publish=False):
+        draft = self.drafts.get(draft_id)
+        if not draft:
+            return None, '平台草稿不存在'
+        if draft['platform'] != 'zhihu':
+            return None, '仅支持知乎草稿浏览器发布'
+
+        task = self.tasks.create_browser(draft)
+        self.tasks.mark_running(task['id'])
+        content = self.contents.get(draft['content_id']) or {}
+        extra_config = draft.get('extra_config', {})
+        draft = {
+            **draft,
+            'cover_image': extra_config.get('zhihu_cover_image') or draft.get('cover_image', '') or content.get('cover_image', ''),
+            'creation_declaration': extra_config.get('zhihu_creation_declaration', 'no_label'),
+        }
+        try:
+            from ..publishers.zhihu_browser import ZhihuBrowserPublisher
+            result = ZhihuBrowserPublisher().publish(draft, auto_publish=False)
+        except ModuleNotFoundError:
+            task = self.tasks.mark_failed(task['id'], '缺少 Playwright 依赖，请先安装后端依赖并执行 python -m playwright install chromium')
+            return {'task': task}, '缺少 Playwright 依赖'
+        except Exception as exc:
+            message = self._format_zhihu_browser_error(exc)
+            task = self.tasks.mark_manual_pending(task['id'], message)
+            return {'task': task, 'result': {'status': 'manual_pending', 'message': message, 'draft': self._browser_draft_payload(draft)}}, None
+
+        task = self.tasks.mark_manual_pending(task['id'], result.get('message', '请在知乎页面人工完成发布'))
+        return {'task': task, 'result': result}, None
+
+    def _format_zhihu_browser_error(self, exc):
+        error_text = str(exc)
+        if '40362' in error_text or '请求存在异常' in error_text or 'temporarily restricted' in error_text:
+            return '知乎平台限制了本次访问，请在打开的知乎页面人工处理，不要连续自动重试。'
+        if 'Target page, context or browser has been closed' in error_text:
+            return '知乎浏览器窗口已关闭或已有会话占用，请关闭已打开的知乎自动化窗口后再使用发布助手。'
+        return '知乎发布助手启动后未能自动完成，请在知乎页面人工处理。'
+
+    def _browser_draft_payload(self, draft):
+        return {
+            'platform': draft.get('platform', ''),
+            'title': draft.get('title', ''),
+            'body': draft.get('body', ''),
+            'tags': draft.get('tags', []),
+            'cover_image': draft.get('cover_image', ''),
+            'creation_declaration': draft.get('creation_declaration', ''),
+        }
+
     def publish_wechat_draft(self, draft_id):
         draft = self.drafts.get(draft_id)
         if not draft:
