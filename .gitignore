@@ -19,6 +19,7 @@ Thumbs.db
 backend/data/*.db
 backend/data/*.sqlite
 backend/data/runtime/
+backend/data/browser/
 *.log
 
 frontend/dist/
