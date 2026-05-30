@@ -67,6 +67,16 @@
               >
                 浏览器保存到 B站草稿
               </el-button>
+              <el-button
+                v-if="draft.platform === 'kuaishou'"
+                size="small"
+                type="primary"
+                plain
+                :loading="browserPublishingId === draft.id"
+                @click.stop="openKuaishouBrowserAssistant(draft)"
+              >
+                浏览器打开快手发布助手
+              </el-button>
             </div>
           </div>
           <h3>{{ draft.title }}</h3>
@@ -101,12 +111,12 @@
         </template>
       </el-dialog>
 
-      <el-dialog v-model="browserDialogVisible" :title="`${platformName(browserDraft?.platform || '')}浏览器辅助发布`" width="640px">
+      <el-dialog v-model="browserDialogVisible" :title="browserDialogTitle" width="640px">
         <el-alert
           type="warning"
           show-icon
           :closable="false"
-          title="系统会打开平台创作者页面并尝试上传/填充内容；知乎发布助手不会自动点击最终发布按钮，遇到登录、验证码、风控或无法确认成功时，需要你在平台页面手动处理。"
+          :title="browserDialogTip"
         />
         <div v-if="browserResult" class="browser-result">
           <p>{{ browserResult.message }}</p>
@@ -116,12 +126,9 @@
               <pre>{{ browserResult.draft.body }}</pre>
             </el-descriptions-item>
             <el-descriptions-item label="标签">{{ (browserResult.draft.tags || []).join('、') || '-' }}</el-descriptions-item>
-            <el-descriptions-item v-if="browserDraft?.platform === 'zhihu'" label="文章封面">
-              {{ browserResult.draft.cover_image || '未填写，请在知乎页面手动设置' }}
-            </el-descriptions-item>
-            <el-descriptions-item v-if="browserDraft?.platform === 'zhihu'" label="创作声明">
-              {{ declarationText(browserResult.draft.creation_declaration) }}
-            </el-descriptions-item>
+            <el-descriptions-item label="视频文件">{{ browserResult.draft.video_path || `未填写，请在 ${browserPlatformName} 页面手动上传` }}</el-descriptions-item>
+            <el-descriptions-item v-if="browserTask?.platform === 'kuaishou'" label="封面图片">{{ browserResult.draft.thumbnail_path || '未填写，请在快手页面手动设置' }}</el-descriptions-item>
+            <el-descriptions-item v-if="browserTask?.platform === 'kuaishou'" label="作者声明">{{ browserResult.draft.author_declaration || '未填写，请在快手页面手动设置' }}</el-descriptions-item>
             <el-descriptions-item label="已尝试填充">{{ (browserResult.filled || []).join('、') || '暂无' }}</el-descriptions-item>
           </el-descriptions>
           <el-input v-model="publishUrl" class="publish-url" placeholder="可选：发布后的内容链接，不填也可以确认完成" />
@@ -130,6 +137,9 @@
             <el-button @click="copyDraftText(browserResult.draft.body)">复制{{ browserDraft?.platform === 'zhihu' ? '正文' : '简介' }}</el-button>
             <el-button @click="copyDraftText((browserResult.draft.tags || []).join('、'))">复制标签</el-button>
             <el-button v-if="browserDraft?.platform === 'zhihu'" @click="copyDraftText(browserResult.draft.cover_image)">复制封面路径</el-button>
+            <el-button v-if="browserTask?.platform === 'bilibili'" @click="copyDraftText(browserResult.draft.video_path)">复制视频路径</el-button>
+            <el-button v-if="browserTask?.platform === 'kuaishou'" @click="copyDraftText(browserResult.draft.video_path)">复制视频路径</el-button>
+            <el-button v-if="browserTask?.platform === 'kuaishou'" @click="copyDraftText(browserResult.draft.thumbnail_path)">复制封面路径</el-button>
           </div>
         </div>
         <template #footer>
@@ -142,7 +152,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import AppLayout from '../components/AppLayout.vue'
@@ -165,6 +175,14 @@ const browserResult = ref(null)
 const browserTask = ref(null)
 const publishUrl = ref('')
 const completing = ref(false)
+const browserPlatformName = computed(() => platformName(browserTask.value?.platform || 'bilibili'))
+const browserDialogTitle = computed(() => `${browserPlatformName.value}浏览器发布助手`)
+const browserDialogTip = computed(() => {
+  if (browserTask.value?.platform === 'kuaishou') {
+    return '系统会尝试上传视频、填充描述/标签、设置封面和作者声明；不会自动点击最终发布按钮，遇到登录、验证码或风控时需要你在快手页面手动处理。'
+  }
+  return '系统会尝试自动填充标题、简介并点击保存草稿；如果遇到登录、验证码、风控或无法确认成功，需要你在 B站页面手动保存。'
+})
 
 onMounted(async () => {
   store.restoreCurrentContentId()
@@ -289,15 +307,21 @@ async function saveBilibiliDraftWithBrowser(draft) {
   }
 }
 
-function declarationText(value) {
-  const map = {
-    no_label: '不声明',
-    none: '不声明',
-    original: '原创',
-    repost: '转载',
-    authorized: '授权转载',
+async function openKuaishouBrowserAssistant(draft) {
+  browserPublishingId.value = draft.id
+  browserDraft.value = draft
+  try {
+    const res = await publishApi.browserKuaishou(draft.id)
+    browserTask.value = res.data.data.task
+    browserResult.value = res.data.data.result
+    publishUrl.value = ''
+    browserDialogVisible.value = true
+    ElMessage.warning('已打开快手发布助手，请在快手页面人工检查并完成发布')
+  } catch (error) {
+    ElMessage.error(error.response?.data?.msg || '快手浏览器发布助手启动失败')
+  } finally {
+    browserPublishingId.value = null
   }
-  return map[value] || value || '不声明'
 }
 
 async function copyDraftText(text) {
@@ -317,7 +341,7 @@ async function completeManualPublish() {
   completing.value = true
   try {
     await publishApi.completeManual(browserTask.value.id, publishUrl.value.trim())
-    ElMessage.success('草稿保存记录已保存')
+    ElMessage.success('发布记录已保存')
     browserDialogVisible.value = false
     router.push('/publish-history')
   } catch (error) {

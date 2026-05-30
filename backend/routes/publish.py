@@ -72,6 +72,20 @@ def publish_douyin_with_browser():
     return jsonify({'code': 200, 'data': result})
 
 
+@bp.post('/api/publish/kuaishou/browser')
+def publish_kuaishou_with_browser():
+    data = request.get_json(force=True)
+    draft_id = data.get('platform_draft_id')
+    if not draft_id:
+        return jsonify({'code': 400, 'msg': '缺少平台草稿ID'}), 400
+
+    result, error = service.publish_kuaishou_with_browser(draft_id, auto_publish=False)
+    if error:
+        status = 404 if error == '平台草稿不存在' else 400
+        return jsonify({'code': status, 'msg': error, 'data': result}), status
+    return jsonify({'code': 200, 'data': result})
+
+
 @bp.post('/api/publish/wechat/draft')
 def publish_wechat_draft():
     data = request.get_json(force=True)

@@ -5,6 +5,7 @@ export function platformName(platform) {
     bilibili: 'B站',
     xiaohongshu: '小红书',
     douyin: '抖音',
+    kuaishou: '快手',
   }
 
   return platformMap[platform] || platform
