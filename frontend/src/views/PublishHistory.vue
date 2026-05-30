@@ -11,7 +11,11 @@
         </template>
       </el-table-column>
       <el-table-column prop="title" label="标题" />
-      <el-table-column prop="mode" label="模式" width="110" />
+      <el-table-column label="模式" width="110">
+        <template #default="{ row }">
+          <span>{{ modeText(row.mode) }}</span>
+        </template>
+      </el-table-column>
       <el-table-column label="状态" width="120">
         <template #default="{ row }">
           <el-tag :type="statusType(row.status)">{{ statusText(row.status) }}</el-tag>
@@ -23,9 +27,16 @@
         </template>
       </el-table-column>
       <el-table-column prop="created_at" label="创建时间" min-width="160" />
-      <el-table-column label="完成时间" min-width="160">
+      <el-table-column label="操作" width="160">
         <template #default="{ row }">
-          <span>{{ row.finished_at || '-' }}</span>
+          <el-button
+            v-if="row.status === 'manual_pending'"
+            size="small"
+            type="primary"
+            @click="confirmManual(row)"
+          >
+            确认已完成
+          </el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -34,14 +45,34 @@
 
 <script setup>
 import { onMounted, ref } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import AppLayout from '../components/AppLayout.vue'
 import { publishApi } from '../api/publish'
 import { platformName } from '../utils/platform'
 
 const tasks = ref([])
-onMounted(async () => {
+onMounted(loadTasks)
+
+async function loadTasks() {
   tasks.value = (await publishApi.tasks()).data.data
-})
+}
+
+async function confirmManual(row) {
+  try {
+    await ElMessageBox.confirm('确认该 B站发布已经在浏览器中完成？', '确认发布完成', {
+      confirmButtonText: '确认完成',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+    await publishApi.completeManual(row.id, row.publish_url || '')
+    ElMessage.success('发布任务已确认完成')
+    await loadTasks()
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error(error.response?.data?.msg || '确认失败')
+    }
+  }
+}
 
 function statusType(status) {
   if (status === 'simulated' || status === 'success') return 'success'
@@ -55,7 +86,18 @@ function statusText(status) {
     success: '成功',
     failed: '失败',
     pending: '等待中',
+    running: '发布中',
+    manual_pending: '等待人工完成',
   }
   return statusMap[status] || status
+}
+
+function modeText(mode) {
+  const modeMap = {
+    simulate: '模拟发布',
+    browser: '浏览器发布',
+    manual: '辅助发布',
+  }
+  return modeMap[mode] || mode
 }
 </script>
