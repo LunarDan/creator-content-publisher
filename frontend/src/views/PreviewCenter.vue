@@ -47,7 +47,7 @@
                 <el-option label="转载" value="repost" />
               </el-select>
             </el-form-item>
-            <el-form-item v-if="draft.platform === 'bilibili'" label="视频文件路径">
+            <el-form-item v-if="['bilibili', 'douyin'].includes(draft.platform)" label="视频文件路径">
               <el-input v-model="editForms[draft.id].videoPath" placeholder="例如 C:/Users/30983/Videos/demo.mp4" />
             </el-form-item>
           </el-form>
