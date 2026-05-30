@@ -33,9 +33,9 @@
                 type="primary"
                 plain
                 :loading="browserPublishingId === draft.id"
-                @click.stop="publishBilibiliWithBrowser(draft)"
+                @click.stop="saveBilibiliDraftWithBrowser(draft)"
               >
-                浏览器发布到 B站
+                浏览器保存到 B站草稿
               </el-button>
             </div>
           </div>
@@ -48,12 +48,12 @@
         </el-card>
       </el-checkbox-group>
 
-      <el-dialog v-model="browserDialogVisible" title="B站浏览器发布" width="640px">
+      <el-dialog v-model="browserDialogVisible" title="B站浏览器保存草稿" width="640px">
         <el-alert
           type="warning"
           show-icon
           :closable="false"
-          title="系统已打开浏览器，请你在浏览器中自行登录并完成上传；本系统不会保存账号密码，也不会绕过验证码或风控。"
+          title="系统会尝试自动填充标题、简介并点击保存草稿；如果遇到登录、验证码、风控或无法确认成功，需要你在 B站页面手动保存。"
         />
         <div v-if="browserResult" class="browser-result">
           <p>{{ browserResult.message }}</p>
@@ -75,7 +75,7 @@
         </div>
         <template #footer>
           <el-button @click="browserDialogVisible = false">稍后处理</el-button>
-          <el-button type="primary" :loading="completing" @click="completeManualPublish">我已发布，保存链接</el-button>
+          <el-button type="primary" :loading="completing" @click="completeManualPublish">我已保存草稿，记录完成</el-button>
         </template>
       </el-dialog>
     </template>
@@ -142,17 +142,22 @@ async function simulateBatch() {
   }
 }
 
-async function publishBilibiliWithBrowser(draft) {
+async function saveBilibiliDraftWithBrowser(draft) {
   browserPublishingId.value = draft.id
   try {
-    const res = await publishApi.browserBilibili(draft.id)
+    const res = await publishApi.browserBilibili(draft.id, true)
     browserTask.value = res.data.data.task
     browserResult.value = res.data.data.result
     publishUrl.value = ''
+    if (browserTask.value.status === 'success') {
+      ElMessage.success('已自动保存到 B站草稿')
+      router.push('/publish-history')
+      return
+    }
     browserDialogVisible.value = true
-    ElMessage.success('浏览器已打开，请完成登录和发布')
+    ElMessage.warning('已打开浏览器，仍需要你在 B站页面人工确认草稿')
   } catch (error) {
-    ElMessage.error(error.response?.data?.msg || 'B站浏览器发布启动失败')
+    ElMessage.error(error.response?.data?.msg || 'B站浏览器保存草稿启动失败')
   } finally {
     browserPublishingId.value = null
   }
@@ -175,7 +180,7 @@ async function completeManualPublish() {
   completing.value = true
   try {
     await publishApi.completeManual(browserTask.value.id, publishUrl.value.trim())
-    ElMessage.success('发布记录已保存')
+    ElMessage.success('草稿保存记录已保存')
     browserDialogVisible.value = false
     router.push('/publish-history')
   } catch (error) {

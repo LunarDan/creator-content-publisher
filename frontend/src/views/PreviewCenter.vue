@@ -40,6 +40,13 @@
             <el-form-item label="标签">
               <el-input v-model="editForms[draft.id].tagText" placeholder="用逗号分隔，例如 创作者,效率工具" />
             </el-form-item>
+            <el-form-item v-if="draft.platform === 'bilibili'" label="创作声明">
+              <el-select v-model="editForms[draft.id].creationDeclaration" placeholder="请选择 B站创作声明">
+                <el-option label="无需标注" value="no_label" />
+                <el-option label="原创 / 自制" value="original" />
+                <el-option label="转载" value="repost" />
+              </el-select>
+            </el-form-item>
             <el-form-item v-if="draft.platform === 'bilibili'" label="视频文件路径">
               <el-input v-model="editForms[draft.id].videoPath" placeholder="例如 C:/Users/30983/Videos/demo.mp4" />
             </el-form-item>
@@ -79,6 +86,7 @@ function initEditForms() {
       body: draft.body || '',
       tagText: (draft.tags || []).join(','),
       videoPath: draft.extra_config?.video_path || '',
+      creationDeclaration: draft.extra_config?.creation_declaration || 'no_label',
     }
   })
 }
@@ -106,7 +114,11 @@ async function saveDraft(draft) {
       body: form.body,
       tags: parseTags(form.tagText),
       cover_image: draft.cover_image || '',
-      extra_config: { ...(draft.extra_config || {}), video_path: form.videoPath || '' },
+      extra_config: {
+        ...(draft.extra_config || {}),
+        video_path: form.videoPath || '',
+        creation_declaration: form.creationDeclaration || '',
+      },
       validation_warnings: draft.validation_warnings || [],
     }
     const res = await contentApi.updateDraft(draft.id, payload)
@@ -121,6 +133,7 @@ async function saveDraft(draft) {
       body: updatedDraft.body || '',
       tagText: (updatedDraft.tags || []).join(','),
       videoPath: updatedDraft.extra_config?.video_path || '',
+      creationDeclaration: updatedDraft.extra_config?.creation_declaration || '',
     }
     ElMessage.success('草稿已保存')
   } finally {
