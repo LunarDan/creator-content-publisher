@@ -26,6 +26,11 @@
           <span>{{ row.publish_url || '-' }}</span>
         </template>
       </el-table-column>
+      <el-table-column label="外部ID" min-width="160">
+        <template #default="{ row }">
+          <span>{{ row.external_id || '-' }}</span>
+        </template>
+      </el-table-column>
       <el-table-column prop="created_at" label="创建时间" min-width="160" />
       <el-table-column label="操作" width="160">
         <template #default="{ row }">
@@ -97,6 +102,7 @@ function modeText(mode) {
     simulate: '模拟发布',
     browser: '浏览器发布',
     manual: '辅助发布',
+    wechat_draft: '公众号草稿',
   }
   return modeMap[mode] || mode
 }
