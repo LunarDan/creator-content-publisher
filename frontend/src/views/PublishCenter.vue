@@ -28,6 +28,16 @@
             <div class="card-actions">
               <el-tag type="success">模拟发布</el-tag>
               <el-button
+                v-if="draft.platform === 'wechat_official'"
+                size="small"
+                type="primary"
+                plain
+                :loading="wechatPublishingId === draft.id"
+                @click.stop="saveWechatDraft(draft)"
+              >
+                保存到公众号草稿箱
+              </el-button>
+              <el-button
                 v-if="draft.platform === 'bilibili'"
                 size="small"
                 type="primary"
@@ -47,6 +57,29 @@
           </div>
         </el-card>
       </el-checkbox-group>
+
+      <el-dialog v-model="wechatDialogVisible" title="公众号草稿发布结果" width="620px">
+        <el-alert
+          type="success"
+          show-icon
+          :closable="false"
+          title="公众号草稿已创建成功。"
+        />
+        <div v-if="wechatResult" class="browser-result">
+          <p>{{ wechatResult.message }}</p>
+          <el-descriptions border :column="1">
+            <el-descriptions-item label="标题">{{ wechatResult.draft.title }}</el-descriptions-item>
+            <el-descriptions-item label="摘要">{{ wechatResult.draft.summary || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="正文">
+              <pre>{{ wechatResult.draft.body }}</pre>
+            </el-descriptions-item>
+            <el-descriptions-item label="Media ID">{{ wechatResult.result.external_id || '-' }}</el-descriptions-item>
+          </el-descriptions>
+        </div>
+        <template #footer>
+          <el-button type="primary" @click="wechatDialogVisible = false">关闭</el-button>
+        </template>
+      </el-dialog>
 
       <el-dialog v-model="browserDialogVisible" title="B站浏览器保存草稿" width="640px">
         <el-alert
@@ -96,6 +129,9 @@ const router = useRouter()
 const store = useContentStore()
 const selectedDraftIds = ref([])
 const publishing = ref(false)
+const wechatPublishingId = ref(null)
+const wechatDialogVisible = ref(false)
+const wechatResult = ref(null)
 const browserPublishingId = ref(null)
 const browserDialogVisible = ref(false)
 const browserResult = ref(null)
@@ -139,6 +175,24 @@ async function simulateBatch() {
     router.push('/publish-history')
   } finally {
     publishing.value = false
+  }
+}
+
+async function saveWechatDraft(draft) {
+  wechatPublishingId.value = draft.id
+  try {
+    const res = await publishApi.wechatDraft(draft.id)
+    wechatResult.value = {
+      draft,
+      result: res.data.data.result,
+      message: res.data.data.result.message,
+    }
+    wechatDialogVisible.value = true
+    ElMessage.success('已保存到公众号草稿箱')
+  } catch (error) {
+    ElMessage.error(error.response?.data?.msg || '公众号草稿发布失败')
+  } finally {
+    wechatPublishingId.value = null
   }
 }
 
