@@ -25,7 +25,19 @@
         <el-card v-for="draft in store.drafts" :key="draft.id" class="publish-card">
           <div class="card-header">
             <el-checkbox :label="draft.id">{{ platformName(draft.platform) }}</el-checkbox>
-            <el-tag type="success">模拟发布</el-tag>
+            <div class="card-actions">
+              <el-tag type="success">模拟发布</el-tag>
+              <el-button
+                v-if="draft.platform === 'bilibili'"
+                size="small"
+                type="primary"
+                plain
+                :loading="browserPublishingId === draft.id"
+                @click.stop="publishBilibiliWithBrowser(draft)"
+              >
+                浏览器发布到 B站
+              </el-button>
+            </div>
           </div>
           <h3>{{ draft.title }}</h3>
           <p class="muted">{{ draft.summary || '暂无摘要' }}</p>
@@ -35,6 +47,37 @@
           </div>
         </el-card>
       </el-checkbox-group>
+
+      <el-dialog v-model="browserDialogVisible" title="B站浏览器发布" width="640px">
+        <el-alert
+          type="warning"
+          show-icon
+          :closable="false"
+          title="系统已打开浏览器，请你在浏览器中自行登录并完成上传；本系统不会保存账号密码，也不会绕过验证码或风控。"
+        />
+        <div v-if="browserResult" class="browser-result">
+          <p>{{ browserResult.message }}</p>
+          <el-descriptions border :column="1">
+            <el-descriptions-item label="标题">{{ browserResult.draft.title }}</el-descriptions-item>
+            <el-descriptions-item label="简介">
+              <pre>{{ browserResult.draft.body }}</pre>
+            </el-descriptions-item>
+            <el-descriptions-item label="标签">{{ (browserResult.draft.tags || []).join('、') || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="视频文件">{{ browserResult.draft.video_path || '未填写，请在 B站页面手动上传' }}</el-descriptions-item>
+            <el-descriptions-item label="已尝试填充">{{ (browserResult.filled || []).join('、') || '暂无' }}</el-descriptions-item>
+          </el-descriptions>
+          <el-input v-model="publishUrl" class="publish-url" placeholder="可选：发布后的视频链接，不填也可以确认完成" />
+          <div class="manual-actions">
+            <el-button @click="copyDraftText(browserResult.draft.title)">复制标题</el-button>
+            <el-button @click="copyDraftText(browserResult.draft.body)">复制简介</el-button>
+            <el-button @click="copyDraftText((browserResult.draft.tags || []).join('、'))">复制标签</el-button>
+          </div>
+        </div>
+        <template #footer>
+          <el-button @click="browserDialogVisible = false">稍后处理</el-button>
+          <el-button type="primary" :loading="completing" @click="completeManualPublish">我已发布，保存链接</el-button>
+        </template>
+      </el-dialog>
     </template>
   </AppLayout>
 </template>
@@ -53,6 +96,12 @@ const router = useRouter()
 const store = useContentStore()
 const selectedDraftIds = ref([])
 const publishing = ref(false)
+const browserPublishingId = ref(null)
+const browserDialogVisible = ref(false)
+const browserResult = ref(null)
+const browserTask = ref(null)
+const publishUrl = ref('')
+const completing = ref(false)
 
 onMounted(async () => {
   store.restoreCurrentContentId()
@@ -90,6 +139,49 @@ async function simulateBatch() {
     router.push('/publish-history')
   } finally {
     publishing.value = false
+  }
+}
+
+async function publishBilibiliWithBrowser(draft) {
+  browserPublishingId.value = draft.id
+  try {
+    const res = await publishApi.browserBilibili(draft.id)
+    browserTask.value = res.data.data.task
+    browserResult.value = res.data.data.result
+    publishUrl.value = ''
+    browserDialogVisible.value = true
+    ElMessage.success('浏览器已打开，请完成登录和发布')
+  } catch (error) {
+    ElMessage.error(error.response?.data?.msg || 'B站浏览器发布启动失败')
+  } finally {
+    browserPublishingId.value = null
+  }
+}
+
+async function copyDraftText(text) {
+  try {
+    await navigator.clipboard.writeText(text || '')
+    ElMessage.success('已复制')
+  } catch (error) {
+    ElMessage.error('复制失败，请手动选择文本复制')
+  }
+}
+
+async function completeManualPublish() {
+  if (!browserTask.value) {
+    return
+  }
+
+  completing.value = true
+  try {
+    await publishApi.completeManual(browserTask.value.id, publishUrl.value.trim())
+    ElMessage.success('发布记录已保存')
+    browserDialogVisible.value = false
+    router.push('/publish-history')
+  } catch (error) {
+    ElMessage.error(error.response?.data?.msg || '保存发布记录失败')
+  } finally {
+    completing.value = false
   }
 }
 </script>

@@ -15,6 +15,13 @@
         <el-form-item label="正文">
           <el-input v-model="form.body" type="textarea" :rows="12" placeholder="支持 Markdown 风格文本" />
         </el-form-item>
+        <el-form-item label="封面">
+          <el-input v-model="form.cover_image" placeholder="请输入封面地址或本地路径" />
+        </el-form-item>
+        <el-form-item label="视频文件路径">
+          <el-input v-model="form.video_path" placeholder="例如 C:/Users/30983/Videos/demo.mp4 或 C:\\Users\\30983\\Videos\\demo.mp4" />
+          <p class="field-help">填写本机视频文件绝对路径，仅 B站浏览器发布使用。建议使用 mp4 文件。</p>
+        </el-form-item>
         <el-form-item label="标签">
           <el-input v-model="tagText" placeholder="用逗号分隔，例如 AI,效率工具,自媒体" />
         </el-form-item>
@@ -46,7 +53,7 @@ const store = useContentStore()
 const platforms = ref([])
 const selectedPlatforms = ref(['wechat_official', 'zhihu', 'bilibili', 'xiaohongshu'])
 const tagText = ref('')
-const form = reactive({ title: '', summary: '', body: '', content_type: 'article', cover_image: '' })
+const form = reactive({ title: '', summary: '', body: '', content_type: 'article', cover_image: '', video_path: '' })
 
 onMounted(async () => {
   const res = await platformApi.list()
@@ -82,3 +89,11 @@ async function saveAndAdapt() {
   router.push('/adaptation-center')
 }
 </script>
+
+<style scoped>
+.field-help {
+  margin: 6px 0 0;
+  color: #909399;
+  font-size: 12px;
+}
+</style>

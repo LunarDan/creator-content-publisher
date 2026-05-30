@@ -66,3 +66,35 @@ class ContentService:
                     'error_message': '平台草稿不存在',
                 })
         return results
+
+    def publish_bilibili_with_browser(self, draft_id):
+        draft = self.drafts.get(draft_id)
+        if not draft:
+            return None, '平台草稿不存在'
+        if draft['platform'] != 'bilibili':
+            return None, '仅支持 B站草稿浏览器发布'
+
+        task = self.tasks.create_browser(draft)
+        self.tasks.mark_running(task['id'])
+        content = self.contents.get(draft['content_id']) or {}
+        draft = {**draft, 'video_path': draft.get('extra_config', {}).get('video_path') or content.get('video_path', '')}
+        try:
+            from ..publishers.bilibili_browser import BilibiliBrowserPublisher
+            result = BilibiliBrowserPublisher().publish(draft)
+        except ModuleNotFoundError as exc:
+            task = self.tasks.mark_failed(task['id'], '缺少 Playwright 依赖，请先安装后端依赖并执行 python -m playwright install chromium')
+            return {'task': task}, '缺少 Playwright 依赖'
+        except Exception as exc:
+            task = self.tasks.mark_failed(task['id'], str(exc))
+            return {'task': task}, 'B站浏览器发布启动失败'
+
+        task = self.tasks.mark_manual_pending(task['id'], result['message'])
+        return {'task': task, 'result': result}, None
+
+    def complete_manual_publish(self, task_id, publish_url):
+        task = self.tasks.get(task_id)
+        if not task:
+            return None, '发布任务不存在'
+        if task['mode'] not in ('browser', 'manual'):
+            return None, '只能完成浏览器或手动发布任务'
+        return self.tasks.mark_success(task_id, publish_url), None
