@@ -1,12 +1,11 @@
 from .bilibili import BilibiliAdapter
-from .kuaishou import KuaishouAdapter
 from .wechat_official import WechatOfficialAdapter
 from .xiaohongshu import XiaohongshuAdapter
 from .zhihu import ZhihuAdapter
 
 ADAPTERS = {
     adapter.platform_key: adapter()
-    for adapter in [WechatOfficialAdapter, ZhihuAdapter, BilibiliAdapter, XiaohongshuAdapter, KuaishouAdapter]
+    for adapter in [WechatOfficialAdapter, ZhihuAdapter, BilibiliAdapter, XiaohongshuAdapter]
 }
 
 
