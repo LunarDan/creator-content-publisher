@@ -47,7 +47,13 @@
                 <el-option label="转载" value="repost" />
               </el-select>
             </el-form-item>
-            <el-form-item v-if="draft.platform === 'bilibili'" label="视频文件路径">
+            <el-form-item v-if="draft.platform === 'kuaishou'" label="作者声明/补充说明">
+              <el-input v-model="editForms[draft.id].authorDeclaration" placeholder="填写快手页面中的声明选项，例如 原创、转载，留空则手动处理" />
+            </el-form-item>
+            <el-form-item v-if="draft.platform === 'kuaishou'" label="封面图片路径">
+              <el-input v-model="editForms[draft.id].thumbnailPath" placeholder="例如 C:/Users/30983/Pictures/cover.jpg" />
+            </el-form-item>
+            <el-form-item v-if="draft.platform === 'bilibili' || draft.platform === 'kuaishou'" label="视频文件路径">
               <el-input v-model="editForms[draft.id].videoPath" placeholder="例如 C:/Users/30983/Videos/demo.mp4" />
             </el-form-item>
           </el-form>
@@ -87,6 +93,8 @@ function initEditForms() {
       tagText: (draft.tags || []).join(','),
       videoPath: draft.extra_config?.video_path || '',
       creationDeclaration: draft.extra_config?.creation_declaration || 'no_label',
+      thumbnailPath: draft.extra_config?.thumbnail_path || draft.cover_image || '',
+      authorDeclaration: draft.extra_config?.author_declaration || '',
     }
   })
 }
@@ -118,6 +126,8 @@ async function saveDraft(draft) {
         ...(draft.extra_config || {}),
         video_path: form.videoPath || '',
         creation_declaration: form.creationDeclaration || '',
+        thumbnail_path: form.thumbnailPath || '',
+        author_declaration: form.authorDeclaration || '',
       },
       validation_warnings: draft.validation_warnings || [],
     }
@@ -134,6 +144,8 @@ async function saveDraft(draft) {
       tagText: (updatedDraft.tags || []).join(','),
       videoPath: updatedDraft.extra_config?.video_path || '',
       creationDeclaration: updatedDraft.extra_config?.creation_declaration || '',
+      thumbnailPath: updatedDraft.extra_config?.thumbnail_path || updatedDraft.cover_image || '',
+      authorDeclaration: updatedDraft.extra_config?.author_declaration || '',
     }
     ElMessage.success('草稿已保存')
   } finally {
