@@ -58,7 +58,13 @@
                 <el-option label="转载" value="repost" />
               </el-select>
             </el-form-item>
-            <el-form-item v-if="['bilibili', 'douyin'].includes(draft.platform)" label="视频文件路径">
+            <el-form-item v-if="draft.platform === 'kuaishou'" label="作者声明/补充说明">
+              <el-input v-model="editForms[draft.id].authorDeclaration" placeholder="填写快手页面中的声明选项，例如 原创、转载，留空则手动处理" />
+            </el-form-item>
+            <el-form-item v-if="draft.platform === 'kuaishou'" label="封面图片路径">
+              <el-input v-model="editForms[draft.id].thumbnailPath" placeholder="例如 C:/Users/30983/Pictures/cover.jpg" />
+            </el-form-item>
+            <el-form-item v-if="draft.platform === 'bilibili' || draft.platform === 'kuaishou'" label="视频文件路径">
               <el-input v-model="editForms[draft.id].videoPath" placeholder="例如 C:/Users/30983/Videos/demo.mp4" />
             </el-form-item>
           </el-form>
@@ -100,6 +106,8 @@ function initEditForms() {
       creationDeclaration: draft.extra_config?.creation_declaration || 'no_label',
       coverImage: draft.extra_config?.zhihu_cover_image || draft.cover_image || '',
       zhihuCreationDeclaration: draft.extra_config?.zhihu_creation_declaration || 'no_label',
+      thumbnailPath: draft.extra_config?.thumbnail_path || draft.cover_image || '',
+      authorDeclaration: draft.extra_config?.author_declaration || '',
     }
   })
 }
@@ -133,6 +141,8 @@ async function saveDraft(draft) {
         creation_declaration: form.creationDeclaration || '',
         zhihu_cover_image: form.coverImage || '',
         zhihu_creation_declaration: form.zhihuCreationDeclaration || '',
+        thumbnail_path: form.thumbnailPath || '',
+        author_declaration: form.authorDeclaration || '',
       },
       validation_warnings: draft.validation_warnings || [],
     }
@@ -151,6 +161,8 @@ async function saveDraft(draft) {
       creationDeclaration: updatedDraft.extra_config?.creation_declaration || '',
       coverImage: updatedDraft.extra_config?.zhihu_cover_image || updatedDraft.cover_image || '',
       zhihuCreationDeclaration: updatedDraft.extra_config?.zhihu_creation_declaration || 'no_label',
+      thumbnailPath: updatedDraft.extra_config?.thumbnail_path || updatedDraft.cover_image || '',
+      authorDeclaration: updatedDraft.extra_config?.author_declaration || '',
     }
     ElMessage.success('草稿已保存')
   } finally {
