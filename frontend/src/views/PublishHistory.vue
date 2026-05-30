@@ -100,7 +100,7 @@ function statusText(status) {
 function modeText(mode) {
   const modeMap = {
     simulate: '模拟发布',
-    browser: '浏览器发布',
+    browser: '浏览器助手',
     manual: '辅助发布',
     wechat_draft: '公众号草稿',
   }

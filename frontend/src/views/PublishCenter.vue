@@ -38,6 +38,16 @@
                 保存到公众号草稿箱
               </el-button>
               <el-button
+                v-if="draft.platform === 'zhihu'"
+                size="small"
+                type="primary"
+                plain
+                :loading="browserPublishingId === draft.id"
+                @click.stop="publishZhihuWithBrowser(draft)"
+              >
+                浏览器打开知乎发布助手
+              </el-button>
+              <el-button
                 v-if="draft.platform === 'douyin'"
                 size="small"
                 type="primary"
@@ -96,24 +106,30 @@
           type="warning"
           show-icon
           :closable="false"
-          title="系统会打开平台创作者页面并尝试上传/填充内容；如果遇到登录、验证码、风控或无法确认成功，需要你在平台页面手动处理。"
+          title="系统会打开平台创作者页面并尝试上传/填充内容；知乎发布助手不会自动点击最终发布按钮，遇到登录、验证码、风控或无法确认成功时，需要你在平台页面手动处理。"
         />
         <div v-if="browserResult" class="browser-result">
           <p>{{ browserResult.message }}</p>
           <el-descriptions border :column="1">
             <el-descriptions-item label="标题">{{ browserResult.draft.title }}</el-descriptions-item>
-            <el-descriptions-item label="简介">
+            <el-descriptions-item :label="browserDraft?.platform === 'zhihu' ? '正文' : '简介'">
               <pre>{{ browserResult.draft.body }}</pre>
             </el-descriptions-item>
             <el-descriptions-item label="标签">{{ (browserResult.draft.tags || []).join('、') || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="视频文件">{{ browserResult.draft.video_path || '未填写，请在平台页面手动上传' }}</el-descriptions-item>
+            <el-descriptions-item v-if="browserDraft?.platform === 'zhihu'" label="文章封面">
+              {{ browserResult.draft.cover_image || '未填写，请在知乎页面手动设置' }}
+            </el-descriptions-item>
+            <el-descriptions-item v-if="browserDraft?.platform === 'zhihu'" label="创作声明">
+              {{ declarationText(browserResult.draft.creation_declaration) }}
+            </el-descriptions-item>
             <el-descriptions-item label="已尝试填充">{{ (browserResult.filled || []).join('、') || '暂无' }}</el-descriptions-item>
           </el-descriptions>
-          <el-input v-model="publishUrl" class="publish-url" placeholder="可选：发布后的视频链接，不填也可以确认完成" />
+          <el-input v-model="publishUrl" class="publish-url" placeholder="可选：发布后的内容链接，不填也可以确认完成" />
           <div class="manual-actions">
             <el-button @click="copyDraftText(browserResult.draft.title)">复制标题</el-button>
-            <el-button @click="copyDraftText(browserResult.draft.body)">复制简介</el-button>
+            <el-button @click="copyDraftText(browserResult.draft.body)">复制{{ browserDraft?.platform === 'zhihu' ? '正文' : '简介' }}</el-button>
             <el-button @click="copyDraftText((browserResult.draft.tags || []).join('、'))">复制标签</el-button>
+            <el-button v-if="browserDraft?.platform === 'zhihu'" @click="copyDraftText(browserResult.draft.cover_image)">复制封面路径</el-button>
           </div>
         </div>
         <template #footer>
@@ -207,6 +223,28 @@ async function saveWechatDraft(draft) {
   }
 }
 
+async function publishZhihuWithBrowser(draft) {
+  browserPublishingId.value = draft.id
+  browserDraft.value = draft
+  try {
+    const res = await publishApi.browserZhihu(draft.id, false)
+    browserTask.value = res.data.data.task
+    browserResult.value = res.data.data.result
+    publishUrl.value = ''
+    if (browserTask.value.status === 'success') {
+      ElMessage.success('知乎发布或草稿保存成功')
+      router.push('/publish-history')
+      return
+    }
+    browserDialogVisible.value = true
+    ElMessage.warning('已打开知乎发布助手并尝试填充内容；系统不会自动点击发布，请在知乎页面人工检查、保存或发布')
+  } catch (error) {
+    ElMessage.error(error.response?.data?.msg || '知乎发布助手启动失败')
+  } finally {
+    browserPublishingId.value = null
+  }
+}
+
 async function saveDouyinDraftWithBrowser(draft) {
   browserPublishingId.value = draft.id
   browserDraft.value = draft
@@ -249,6 +287,17 @@ async function saveBilibiliDraftWithBrowser(draft) {
   } finally {
     browserPublishingId.value = null
   }
+}
+
+function declarationText(value) {
+  const map = {
+    no_label: '不声明',
+    none: '不声明',
+    original: '原创',
+    repost: '转载',
+    authorized: '授权转载',
+  }
+  return map[value] || value || '不声明'
 }
 
 async function copyDraftText(text) {

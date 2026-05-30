@@ -40,6 +40,17 @@
             <el-form-item label="标签">
               <el-input v-model="editForms[draft.id].tagText" placeholder="用逗号分隔，例如 创作者,效率工具" />
             </el-form-item>
+            <el-form-item v-if="draft.platform === 'zhihu'" label="文章封面">
+              <el-input v-model="editForms[draft.id].coverImage" placeholder="请输入本地图片路径，或留空后在知乎页面手动设置" />
+            </el-form-item>
+            <el-form-item v-if="draft.platform === 'zhihu'" label="创作声明">
+              <el-select v-model="editForms[draft.id].zhihuCreationDeclaration" placeholder="请选择知乎创作声明">
+                <el-option label="不声明" value="no_label" />
+                <el-option label="原创" value="original" />
+                <el-option label="转载" value="repost" />
+                <el-option label="授权转载" value="authorized" />
+              </el-select>
+            </el-form-item>
             <el-form-item v-if="draft.platform === 'bilibili'" label="创作声明">
               <el-select v-model="editForms[draft.id].creationDeclaration" placeholder="请选择 B站创作声明">
                 <el-option label="无需标注" value="no_label" />
@@ -87,6 +98,8 @@ function initEditForms() {
       tagText: (draft.tags || []).join(','),
       videoPath: draft.extra_config?.video_path || '',
       creationDeclaration: draft.extra_config?.creation_declaration || 'no_label',
+      coverImage: draft.extra_config?.zhihu_cover_image || draft.cover_image || '',
+      zhihuCreationDeclaration: draft.extra_config?.zhihu_creation_declaration || 'no_label',
     }
   })
 }
@@ -118,6 +131,8 @@ async function saveDraft(draft) {
         ...(draft.extra_config || {}),
         video_path: form.videoPath || '',
         creation_declaration: form.creationDeclaration || '',
+        zhihu_cover_image: form.coverImage || '',
+        zhihu_creation_declaration: form.zhihuCreationDeclaration || '',
       },
       validation_warnings: draft.validation_warnings || [],
     }
@@ -134,6 +149,8 @@ async function saveDraft(draft) {
       tagText: (updatedDraft.tags || []).join(','),
       videoPath: updatedDraft.extra_config?.video_path || '',
       creationDeclaration: updatedDraft.extra_config?.creation_declaration || '',
+      coverImage: updatedDraft.extra_config?.zhihu_cover_image || updatedDraft.cover_image || '',
+      zhihuCreationDeclaration: updatedDraft.extra_config?.zhihu_creation_declaration || 'no_label',
     }
     ElMessage.success('草稿已保存')
   } finally {
