@@ -18,13 +18,14 @@ class ContentRepository:
         tags = json.dumps(data.get('tags', []), ensure_ascii=False)
         with get_connection() as conn:
             cursor = conn.execute(
-                '''INSERT INTO contents (title, summary, body, cover_image, content_type, tags)
-                   VALUES (?, ?, ?, ?, ?, ?)''',
+                '''INSERT INTO contents (title, summary, body, cover_image, video_path, content_type, tags)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)''',
                 (
                     data['title'],
                     data.get('summary', ''),
                     data['body'],
                     data.get('cover_image', ''),
+                    data.get('video_path', ''),
                     data.get('content_type', 'article'),
                     tags,
                 ),
@@ -41,13 +42,14 @@ class ContentRepository:
         with get_connection() as conn:
             conn.execute(
                 '''UPDATE contents
-                   SET title = ?, summary = ?, body = ?, cover_image = ?, content_type = ?, tags = ?, updated_at = CURRENT_TIMESTAMP
+                   SET title = ?, summary = ?, body = ?, cover_image = ?, video_path = ?, content_type = ?, tags = ?, updated_at = CURRENT_TIMESTAMP
                    WHERE id = ?''',
                 (
                     merged['title'],
                     merged.get('summary', ''),
                     merged['body'],
                     merged.get('cover_image', ''),
+                    merged.get('video_path', ''),
                     merged.get('content_type', 'article'),
                     tags,
                     content_id,

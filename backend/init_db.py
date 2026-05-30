@@ -15,12 +15,17 @@ def init_database():
             summary TEXT DEFAULT '',
             body TEXT NOT NULL,
             cover_image TEXT DEFAULT '',
+            video_path TEXT DEFAULT '',
             content_type TEXT DEFAULT 'article',
             tags TEXT DEFAULT '[]',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+    cursor.execute("PRAGMA table_info(contents)")
+    content_columns = {row[1] for row in cursor.fetchall()}
+    if 'video_path' not in content_columns:
+        cursor.execute("ALTER TABLE contents ADD COLUMN video_path TEXT DEFAULT ''")
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS platform_drafts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,

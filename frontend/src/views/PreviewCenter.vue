@@ -40,6 +40,9 @@
             <el-form-item label="标签">
               <el-input v-model="editForms[draft.id].tagText" placeholder="用逗号分隔，例如 创作者,效率工具" />
             </el-form-item>
+            <el-form-item v-if="draft.platform === 'bilibili'" label="视频文件路径">
+              <el-input v-model="editForms[draft.id].videoPath" placeholder="例如 C:/Users/30983/Videos/demo.mp4" />
+            </el-form-item>
           </el-form>
         </div>
       </el-card>
@@ -75,6 +78,7 @@ function initEditForms() {
       summary: draft.summary || '',
       body: draft.body || '',
       tagText: (draft.tags || []).join(','),
+      videoPath: draft.extra_config?.video_path || '',
     }
   })
 }
@@ -102,7 +106,7 @@ async function saveDraft(draft) {
       body: form.body,
       tags: parseTags(form.tagText),
       cover_image: draft.cover_image || '',
-      extra_config: draft.extra_config || {},
+      extra_config: { ...(draft.extra_config || {}), video_path: form.videoPath || '' },
       validation_warnings: draft.validation_warnings || [],
     }
     const res = await contentApi.updateDraft(draft.id, payload)
@@ -116,6 +120,7 @@ async function saveDraft(draft) {
       summary: updatedDraft.summary || '',
       body: updatedDraft.body || '',
       tagText: (updatedDraft.tags || []).join(','),
+      videoPath: updatedDraft.extra_config?.video_path || '',
     }
     ElMessage.success('草稿已保存')
   } finally {
