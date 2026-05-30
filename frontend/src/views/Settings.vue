@@ -22,23 +22,6 @@
         <el-step title="发布完成后把 B站链接回填到系统，记录到发布历史" />
       </el-steps>
     </el-card>
-
-    <el-card class="settings-card">
-      <template #header>快手浏览器发布助手</template>
-      <el-alert
-        type="warning"
-        show-icon
-        :closable="false"
-        title="快手当前仅作为发布助手：系统会打开创作页、辅助上传和填充内容，不会自动点击最终发布按钮，也不会绕过验证码、安全验证或平台风控。"
-      />
-      <el-steps class="settings-steps" direction="vertical" :active="4">
-        <el-step title="首次使用时，点击快手发布助手后在打开的快手创作者中心手动登录" />
-        <el-step title="预览中心可填写视频路径、封面图片路径和作者声明/补充说明" />
-        <el-step title="系统会尝试上传视频、填充描述和标签，并设置封面和作者声明" />
-        <el-step title="遇到登录、验证码、安全验证、风控或页面结构变化时，请在快手页面人工处理" />
-        <el-step title="确认发布或保存后，可回到系统记录发布完成" />
-      </el-steps>
-    </el-card>
   </AppLayout>
 </template>
 
@@ -48,10 +31,6 @@ import AppLayout from '../components/AppLayout.vue'
 
 <style scoped>
 .settings-steps {
-  margin-top: 16px;
-}
-
-.settings-card {
   margin-top: 16px;
 }
 </style>
