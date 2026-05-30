@@ -50,6 +50,25 @@
         <el-step title="发布完成后把 B站链接回填到系统，记录到发布历史" />
       </el-steps>
     </el-card>
+
+    <el-card class="settings-card">
+      <template #header>抖音浏览器辅助发布</template>
+      <el-alert
+        type="warning"
+        show-icon
+        :closable="false"
+        title="当前版本不会保存抖音账号密码，也不会绕过验证码、安全验证或平台风控。"
+      />
+      <el-steps class="settings-steps" direction="vertical" :active="4">
+        <el-step title="首次使用时，点击抖音浏览器辅助发布后在打开的抖音创作者中心手动登录" />
+        <el-step title="登录态会保存在本机浏览器数据目录 backend/data/browser/douyin，类似普通浏览器缓存" />
+        <el-step title="系统会尝试上传视频并填充标题、简介和话题标签" />
+        <el-step title="上传完成后系统会按抖音项目逻辑尝试点击发布；如果要求封面，会尝试选择推荐封面后继续发布" />
+        <el-step title="遇到验证码、安全验证、风控、页面变化或无法确认状态时，系统会停下等待人工处理" />
+        <el-step title="如果自动发布未确认成功，请在抖音页面人工检查并完成发布" />
+        <el-step title="发布完成后可在系统里确认任务完成并记录到发布历史" />
+      </el-steps>
+    </el-card>
   </AppLayout>
 </template>
 

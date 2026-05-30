@@ -64,7 +64,7 @@ async function loadTasks() {
 
 async function confirmManual(row) {
   try {
-    await ElMessageBox.confirm('确认该 B站发布已经在浏览器中完成？', '确认发布完成', {
+    await ElMessageBox.confirm(`确认该 ${platformName(row.platform)} 发布已经在浏览器中完成？`, '确认发布完成', {
       confirmButtonText: '确认完成',
       cancelButtonText: '取消',
       type: 'warning',

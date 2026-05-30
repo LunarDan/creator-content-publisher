@@ -38,6 +38,16 @@
                 保存到公众号草稿箱
               </el-button>
               <el-button
+                v-if="draft.platform === 'douyin'"
+                size="small"
+                type="primary"
+                plain
+                :loading="browserPublishingId === draft.id"
+                @click.stop="saveDouyinDraftWithBrowser(draft)"
+              >
+                浏览器辅助发布到抖音
+              </el-button>
+              <el-button
                 v-if="draft.platform === 'bilibili'"
                 size="small"
                 type="primary"
@@ -81,12 +91,12 @@
         </template>
       </el-dialog>
 
-      <el-dialog v-model="browserDialogVisible" title="B站浏览器保存草稿" width="640px">
+      <el-dialog v-model="browserDialogVisible" :title="`${platformName(browserDraft?.platform || '')}浏览器辅助发布`" width="640px">
         <el-alert
           type="warning"
           show-icon
           :closable="false"
-          title="系统会尝试自动填充标题、简介并点击保存草稿；如果遇到登录、验证码、风控或无法确认成功，需要你在 B站页面手动保存。"
+          title="系统会打开平台创作者页面并尝试上传/填充内容；如果遇到登录、验证码、风控或无法确认成功，需要你在平台页面手动处理。"
         />
         <div v-if="browserResult" class="browser-result">
           <p>{{ browserResult.message }}</p>
@@ -96,7 +106,7 @@
               <pre>{{ browserResult.draft.body }}</pre>
             </el-descriptions-item>
             <el-descriptions-item label="标签">{{ (browserResult.draft.tags || []).join('、') || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="视频文件">{{ browserResult.draft.video_path || '未填写，请在 B站页面手动上传' }}</el-descriptions-item>
+            <el-descriptions-item label="视频文件">{{ browserResult.draft.video_path || '未填写，请在平台页面手动上传' }}</el-descriptions-item>
             <el-descriptions-item label="已尝试填充">{{ (browserResult.filled || []).join('、') || '暂无' }}</el-descriptions-item>
           </el-descriptions>
           <el-input v-model="publishUrl" class="publish-url" placeholder="可选：发布后的视频链接，不填也可以确认完成" />
@@ -108,7 +118,7 @@
         </div>
         <template #footer>
           <el-button @click="browserDialogVisible = false">稍后处理</el-button>
-          <el-button type="primary" :loading="completing" @click="completeManualPublish">我已保存草稿，记录完成</el-button>
+          <el-button type="primary" :loading="completing" @click="completeManualPublish">我已在平台完成，记录完成</el-button>
         </template>
       </el-dialog>
     </template>
@@ -134,6 +144,7 @@ const wechatDialogVisible = ref(false)
 const wechatResult = ref(null)
 const browserPublishingId = ref(null)
 const browserDialogVisible = ref(false)
+const browserDraft = ref(null)
 const browserResult = ref(null)
 const browserTask = ref(null)
 const publishUrl = ref('')
@@ -196,8 +207,31 @@ async function saveWechatDraft(draft) {
   }
 }
 
+async function saveDouyinDraftWithBrowser(draft) {
+  browserPublishingId.value = draft.id
+  browserDraft.value = draft
+  try {
+    const res = await publishApi.browserDouyin(draft.id, true)
+    browserTask.value = res.data.data.task
+    browserResult.value = res.data.data.result
+    publishUrl.value = ''
+    if (browserTask.value.status === 'success') {
+      ElMessage.success('抖音自动发布成功')
+      router.push('/publish-history')
+      return
+    }
+    browserDialogVisible.value = true
+    ElMessage.warning('已打开浏览器并尝试自动发布，请在抖音页面检查是否需要人工处理')
+  } catch (error) {
+    ElMessage.error(error.response?.data?.msg || '抖音浏览器辅助发布启动失败')
+  } finally {
+    browserPublishingId.value = null
+  }
+}
+
 async function saveBilibiliDraftWithBrowser(draft) {
   browserPublishingId.value = draft.id
+  browserDraft.value = draft
   try {
     const res = await publishApi.browserBilibili(draft.id, true)
     browserTask.value = res.data.data.task

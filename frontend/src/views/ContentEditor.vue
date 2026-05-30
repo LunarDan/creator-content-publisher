@@ -20,7 +20,7 @@
         </el-form-item>
         <el-form-item label="视频文件路径">
           <el-input v-model="form.video_path" placeholder="例如 C:/Users/30983/Videos/demo.mp4 或 C:\\Users\\30983\\Videos\\demo.mp4" />
-          <p class="field-help">填写本机视频文件绝对路径，仅 B站浏览器发布使用。建议使用 mp4 文件。</p>
+          <p class="field-help">填写本机视频文件绝对路径，B站和抖音浏览器发布都会使用。建议使用 mp4 文件。</p>
         </el-form-item>
         <el-form-item label="标签">
           <el-input v-model="tagText" placeholder="用逗号分隔，例如 AI,效率工具,自媒体" />

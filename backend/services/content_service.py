@@ -100,6 +100,37 @@ class ContentService:
             task = self.tasks.mark_manual_pending(task['id'], result['message'])
         return {'task': task, 'result': result}, None
 
+    def publish_douyin_with_browser(self, draft_id, auto_publish=True):
+        draft = self.drafts.get(draft_id)
+        if not draft:
+            return None, '平台草稿不存在'
+        if draft['platform'] != 'douyin':
+            return None, '仅支持抖音草稿浏览器发布'
+
+        task = self.tasks.create_browser(draft)
+        self.tasks.mark_running(task['id'])
+        content = self.contents.get(draft['content_id']) or {}
+        extra_config = draft.get('extra_config', {})
+        draft = {
+            **draft,
+            'video_path': extra_config.get('video_path') or content.get('video_path', ''),
+        }
+        try:
+            from ..publishers.douyin_browser import DouyinBrowserPublisher
+            result = DouyinBrowserPublisher().publish(draft, auto_publish=auto_publish)
+        except ModuleNotFoundError:
+            task = self.tasks.mark_failed(task['id'], '缺少 Playwright 依赖，请先安装后端依赖并执行 python -m playwright install chromium')
+            return {'task': task}, '缺少 Playwright 依赖'
+        except Exception as exc:
+            task = self.tasks.mark_failed(task['id'], str(exc))
+            return {'task': task}, '抖音浏览器发布启动失败'
+
+        if result.get('status') in ('published', 'draft_saved'):
+            task = self.tasks.mark_success(task['id'], result.get('publish_url', ''))
+        else:
+            task = self.tasks.mark_manual_pending(task['id'], result['message'])
+        return {'task': task, 'result': result}, None
+
     def publish_wechat_draft(self, draft_id):
         draft = self.drafts.get(draft_id)
         if not draft:
