@@ -6,6 +6,7 @@ export const publishApi = {
   browserBilibili: (platform_draft_id, auto_publish = true) => http.post('/publish/bilibili/browser', { platform_draft_id, auto_publish }),
   browserDouyin: (platform_draft_id, auto_publish = true) => http.post('/publish/douyin/browser', { platform_draft_id, auto_publish }),
   browserZhihu: (platform_draft_id, auto_publish = false) => http.post('/publish/zhihu/browser', { platform_draft_id, auto_publish }),
+  browserXiaohongshu: (platform_draft_id) => http.post('/publish/xiaohongshu/browser', { platform_draft_id, auto_publish: false }),
   browserKuaishou: (platform_draft_id) => http.post('/publish/kuaishou/browser', { platform_draft_id, auto_publish: false }),
   wechatDraft: (platform_draft_id) => http.post('/publish/wechat/draft', { platform_draft_id }),
   wechatConfig: () => http.get('/publish/wechat/config'),
