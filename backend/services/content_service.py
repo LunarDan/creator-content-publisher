@@ -131,6 +131,56 @@ class ContentService:
             task = self.tasks.mark_manual_pending(task['id'], result['message'])
         return {'task': task, 'result': result}, None
 
+    def publish_xiaohongshu_with_browser(self, draft_id, auto_publish=False):
+        draft = self.drafts.get(draft_id)
+        if not draft:
+            return None, '平台草稿不存在'
+        if draft['platform'] != 'xiaohongshu':
+            return None, '仅支持小红书草稿浏览器发布'
+
+        task = self.tasks.create_browser(draft)
+        self.tasks.mark_running(task['id'])
+        content = self.contents.get(draft['content_id']) or {}
+        extra_config = draft.get('extra_config', {})
+        draft = {
+            **draft,
+            'video_path': extra_config.get('video_path') or content.get('video_path', ''),
+            'thumbnail_path': extra_config.get('thumbnail_path') or extra_config.get('xhs_thumbnail_path') or draft.get('cover_image', '') or content.get('cover_image', ''),
+            'content_declaration': extra_config.get('content_declaration') or extra_config.get('xhs_content_declaration', ''),
+            'original_declaration': extra_config.get('original_declaration') or extra_config.get('xhs_original_declaration', ''),
+        }
+        try:
+            from ..publishers.xiaohongshu_browser import XiaohongshuBrowserPublisher
+            result = XiaohongshuBrowserPublisher().publish(draft, auto_publish=False)
+        except ModuleNotFoundError:
+            task = self.tasks.mark_failed(task['id'], '缺少 Playwright 依赖，请先安装后端依赖并执行 python -m playwright install chromium')
+            return {'task': task}, '缺少 Playwright 依赖'
+        except Exception as exc:
+            message = self._format_xiaohongshu_browser_error(exc)
+            task = self.tasks.mark_manual_pending(task['id'], message)
+            return {'task': task, 'result': {'status': 'manual_pending', 'message': message, 'draft': self._xiaohongshu_browser_draft_payload(draft), 'filled': []}}, None
+
+        task = self.tasks.mark_manual_pending(task['id'], result.get('message', '请在小红书页面人工完成发布'))
+        return {'task': task, 'result': result}, None
+
+    def _format_xiaohongshu_browser_error(self, exc):
+        error_text = str(exc)
+        if 'Target page, context or browser has been closed' in error_text:
+            return '小红书浏览器窗口已关闭或已有会话占用，请关闭已打开的小红书自动化窗口后再使用发布助手。'
+        return '小红书发布助手启动后未能自动完成，请在小红书页面人工处理。'
+
+    def _xiaohongshu_browser_draft_payload(self, draft):
+        return {
+            'platform': 'xiaohongshu',
+            'title': draft.get('title', ''),
+            'body': draft.get('body', ''),
+            'tags': draft.get('tags', []),
+            'video_path': draft.get('video_path', ''),
+            'thumbnail_path': draft.get('thumbnail_path', ''),
+            'content_declaration': draft.get('content_declaration', ''),
+            'original_declaration': draft.get('original_declaration', ''),
+        }
+
     def publish_kuaishou_with_browser(self, draft_id, auto_publish=False):
         draft = self.drafts.get(draft_id)
         if not draft:
