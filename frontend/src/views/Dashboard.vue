@@ -6,17 +6,60 @@
     </div>
 
     <div class="dashboard-actions">
-      <el-button type="primary" @click="router.push('/content-editor')">新建内容</el-button>
-      <el-button @click="router.push('/publish-center')">发布中心</el-button>
-      <el-button @click="router.push('/publish-history')">发布历史</el-button>
-      <el-button :loading="loading" @click="loadDashboard">刷新数据</el-button>
+      <el-button type="primary" size="large" @click="router.push('/content-editor')">
+        <el-icon style="margin-right:6px"><Plus /></el-icon> 新建内容
+      </el-button>
+      <el-button size="large" @click="router.push('/publish-center')">
+        <el-icon style="margin-right:6px"><Promotion /></el-icon> 发布中心
+      </el-button>
+      <el-button size="large" @click="router.push('/publish-history')">
+        <el-icon style="margin-right:6px"><Clock /></el-icon> 发布历史
+      </el-button>
+      <el-button size="large" :loading="loading" @click="loadDashboard">
+        <el-icon style="margin-right:6px"><Refresh /></el-icon> 刷新
+      </el-button>
     </div>
 
     <div class="stats-grid" v-loading="loading">
-      <el-card><div class="stat-num">{{ contents.length }}</div><div>内容总数</div></el-card>
-      <el-card><div class="stat-num">{{ platforms.length }}</div><div>适配平台</div></el-card>
-      <el-card><div class="stat-num">{{ tasks.length }}</div><div>发布任务</div></el-card>
-      <el-card><div class="stat-num">{{ simulatedCount }}</div><div>模拟成功</div></el-card>
+      <el-card class="stat-card">
+        <div class="stat-inner">
+          <div class="stat-icon blue">
+            <el-icon><Document /></el-icon>
+          </div>
+          <div class="stat-num">{{ contents.length }}</div>
+          <div class="stat-label">内容总数</div>
+        </div>
+      </el-card>
+
+      <el-card class="stat-card">
+        <div class="stat-inner">
+          <div class="stat-icon green">
+            <el-icon><Connection /></el-icon>
+          </div>
+          <div class="stat-num">{{ platforms.length }}</div>
+          <div class="stat-label">适配平台</div>
+        </div>
+      </el-card>
+
+      <el-card class="stat-card">
+        <div class="stat-inner">
+          <div class="stat-icon amber">
+            <el-icon><Promotion /></el-icon>
+          </div>
+          <div class="stat-num">{{ tasks.length }}</div>
+          <div class="stat-label">发布任务</div>
+        </div>
+      </el-card>
+
+      <el-card class="stat-card">
+        <div class="stat-inner">
+          <div class="stat-icon red">
+            <el-icon><CircleCheckFilled /></el-icon>
+          </div>
+          <div class="stat-num">{{ simulatedCount }}</div>
+          <div class="stat-label">发布成功</div>
+        </div>
+      </el-card>
     </div>
 
     <el-card class="content-card">
@@ -27,28 +70,41 @@
         </div>
       </template>
 
-      <el-empty v-if="!contents.length" description="暂无内容，请先新建一篇内容" />
-      <el-table v-else :data="contents" border>
-        <el-table-column prop="title" label="标题" min-width="180" />
-        <el-table-column label="摘要" min-width="220">
+      <el-empty v-if="!contents.length" description="暂无内容，请先新建一篇内容">
+        <el-button type="primary" @click="router.push('/content-editor')">前往内容创作</el-button>
+      </el-empty>
+
+      <el-table v-else :data="contents" border style="width:100%">
+        <el-table-column prop="title" label="标题" min-width="200">
           <template #default="{ row }">
-            <span>{{ row.summary || '暂无摘要' }}</span>
+            <span style="font-weight:600">{{ row.title }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="标签" min-width="180">
+        <el-table-column label="摘要" min-width="240">
+          <template #default="{ row }">
+            <span class="muted">{{ row.summary || '暂无摘要' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="标签" min-width="200">
           <template #default="{ row }">
             <div class="tag-row">
-              <el-tag v-for="tag in row.tags" :key="tag" size="small">{{ tag }}</el-tag>
+              <el-tag v-for="tag in row.tags" :key="tag" size="small" type="info">{{ tag }}</el-tag>
               <span v-if="!row.tags?.length" class="muted">无标签</span>
             </div>
           </template>
         </el-table-column>
-        <el-table-column prop="updated_at" label="更新时间" min-width="160" />
-        <el-table-column label="操作" width="280" fixed="right">
+        <el-table-column prop="updated_at" label="更新时间" min-width="170" />
+        <el-table-column label="操作" width="300" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" @click="openDrafts(row, '/preview-center')">预览</el-button>
-            <el-button size="small" type="primary" @click="openDrafts(row, '/publish-center')">发布</el-button>
-            <el-button size="small" type="danger" @click="deleteContent(row)">删除</el-button>
+            <el-button size="small" @click="openDrafts(row, '/preview-center')">
+              <el-icon style="margin-right:4px"><View /></el-icon> 预览
+            </el-button>
+            <el-button size="small" type="primary" @click="openDrafts(row, '/publish-center')">
+              <el-icon style="margin-right:4px"><Promotion /></el-icon> 发布
+            </el-button>
+            <el-button size="small" type="danger" plain @click="deleteContent(row)">
+              <el-icon style="margin-right:4px"><Delete /></el-icon>
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -60,6 +116,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Plus, Promotion, Clock, Refresh, Document, Connection, View, Delete, CircleCheckFilled } from '@element-plus/icons-vue'
 import AppLayout from '../components/AppLayout.vue'
 import { contentApi } from '../api/content'
 import { platformApi } from '../api/platform'

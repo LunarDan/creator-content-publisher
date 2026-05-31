@@ -5,34 +5,80 @@
       <p>输入一份原始内容，作为后续多平台适配的来源。</p>
     </div>
     <el-card>
-      <el-form label-position="top">
-        <el-form-item label="标题">
-          <el-input v-model="form.title" placeholder="请输入内容标题" />
-        </el-form-item>
+      <el-form label-position="top" size="large">
+        <el-row :gutter="24">
+          <el-col :span="16">
+            <el-form-item label="标题">
+              <el-input v-model="form.title" placeholder="请输入内容标题" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="内容类型">
+              <el-select v-model="form.content_type" style="width:100%">
+                <el-option label="文章" value="article" />
+                <el-option label="视频" value="video" />
+                <el-option label="图文" value="image_text" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+
         <el-form-item label="摘要">
-          <el-input v-model="form.summary" placeholder="一句话概括内容" />
+          <el-input v-model="form.summary" placeholder="一句话概括内容" maxlength="200" show-word-limit />
         </el-form-item>
+
         <el-form-item label="正文">
-          <el-input v-model="form.body" type="textarea" :rows="12" placeholder="支持 Markdown 风格文本" />
+          <el-input
+            v-model="form.body"
+            type="textarea"
+            :rows="14"
+            placeholder="支持 Markdown 风格文本，输入你的创作内容..."
+          />
         </el-form-item>
-        <el-form-item label="封面">
-          <el-input v-model="form.cover_image" placeholder="请输入封面地址或本地路径" />
-        </el-form-item>
-        <el-form-item label="视频文件路径">
-          <el-input v-model="form.video_path" placeholder="例如 C:/Users/30983/Videos/demo.mp4 或 C:\\Users\\30983\\Videos\\demo.mp4" />
-          <p class="field-help">填写本机视频文件绝对路径，B站、抖音和快手浏览器发布都会使用。建议使用 mp4 文件。</p>
-        </el-form-item>
+
+        <el-row :gutter="24">
+          <el-col :span="12">
+            <el-form-item label="封面图片">
+              <el-input v-model="form.cover_image" placeholder="请输入封面地址或本地路径" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="视频文件路径">
+              <el-input v-model="form.video_path" placeholder="例如 C:/Users/.../Videos/demo.mp4" />
+              <p class="field-help">填写本机视频文件绝对路径，B站、抖音和快手浏览器发布都会使用。建议使用 mp4 文件。</p>
+            </el-form-item>
+          </el-col>
+        </el-row>
+
         <el-form-item label="标签">
-          <el-input v-model="tagText" placeholder="用逗号分隔，例如 AI,效率工具,自媒体" />
+          <el-input v-model="tagText" placeholder="用逗号分隔，例如 AI, 效率工具, 自媒体" />
         </el-form-item>
+
         <el-form-item label="目标平台">
           <el-checkbox-group v-model="selectedPlatforms">
-            <el-checkbox v-for="p in platforms" :key="p.key" :label="p.key">{{ p.name }}</el-checkbox>
+            <el-checkbox
+              v-for="p in platforms"
+              :key="p.key"
+              :label="p.key"
+              :value="p.key"
+              border
+              size="large"
+              class="platform-checkbox"
+            >
+              {{ p.name }}
+              <span class="platform-checkbox-desc">{{ p.description?.slice(0, 20) }}...</span>
+            </el-checkbox>
           </el-checkbox-group>
         </el-form-item>
+
         <div class="form-actions">
-          <el-button type="primary" :loading="saving" @click="saveAndAdapt">保存并生成平台草稿</el-button>
-          <el-button @click="fillDemoContent">填入示例内容</el-button>
+          <el-button type="primary" size="large" :loading="saving" @click="saveAndAdapt">
+            <el-icon style="margin-right:6px"><MagicStick /></el-icon> 保存并生成平台草稿
+          </el-button>
+          <el-button size="large" @click="fillDemoContent">
+            <el-icon style="margin-right:6px"><DocumentCopy /></el-icon> 填入示例内容
+          </el-button>
+          <el-button size="large" @click="router.push('/dashboard')">取消</el-button>
         </div>
       </el-form>
     </el-card>
@@ -43,6 +89,7 @@
 import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { MagicStick, DocumentCopy } from '@element-plus/icons-vue'
 import AppLayout from '../components/AppLayout.vue'
 import { contentApi } from '../api/content'
 import { platformApi } from '../api/platform'
@@ -73,7 +120,7 @@ function fillDemoContent() {
 其次，用户可以在预览中心对草稿进行人工微调，保证内容质量和平台表达效果。
 
 最后，用户可以通过发布中心一键模拟发布，并在发布历史中查看每个平台的发布记录。`
-  tagText.value = 'AI,内容创作,效率工具,自媒体'
+  tagText.value = 'AI, 内容创作, 效率工具, 自媒体'
 }
 
 async function saveAndAdapt() {
@@ -97,9 +144,28 @@ async function saveAndAdapt() {
 </script>
 
 <style scoped>
-.field-help {
-  margin: 6px 0 0;
-  color: #909399;
-  font-size: 12px;
+.platform-checkbox {
+  margin-right: 12px !important;
+  margin-bottom: 8px !important;
+  border-radius: var(--radius-md) !important;
+  padding: 10px 16px !important;
+  height: auto !important;
+  transition: all var(--transition-fast);
+}
+
+.platform-checkbox:hover {
+  border-color: var(--color-primary) !important;
+  background: var(--color-primary-50);
+}
+
+.platform-checkbox.is-checked {
+  border-color: var(--color-primary) !important;
+  background: var(--color-primary-50) !important;
+}
+
+.platform-checkbox-desc {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  margin-left: 4px;
 }
 </style>
