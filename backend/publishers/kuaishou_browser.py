@@ -1,6 +1,6 @@
 ﻿from pathlib import Path
 
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import Error as PlaywrightError, sync_playwright
 
 
 _sessions = []
@@ -12,19 +12,10 @@ class KuaishouBrowserPublisher:
     creator_url = 'https://cp.kuaishou.com/article/publish/video'
 
     def publish(self, draft, auto_publish=False):
-        KUAISHOU_USER_DATA_DIR.mkdir(parents=True, exist_ok=True)
-        playwright = sync_playwright().start()
-        context = playwright.chromium.launch_persistent_context(
-            user_data_dir=str(KUAISHOU_USER_DATA_DIR),
-            headless=False,
-            viewport=None,
-        )
-        page = context.pages[0] if context.pages else context.new_page()
+        context, page = self._open_browser_context()
+        filled = []
         page.goto(self.creator_url, wait_until='domcontentloaded')
         page.wait_for_timeout(3000)
-        _sessions.append({'playwright': playwright, 'context': context, 'page': page})
-
-        filled = []
         if draft.get('video_path'):
             self._try_upload_video(page, draft['video_path'], filled)
             self._wait_until_upload_ready(page)
@@ -47,6 +38,73 @@ class KuaishouBrowserPublisher:
                 'author_declaration': draft.get('author_declaration', ''),
             },
         }
+
+    def _open_browser_context(self):
+        self._cleanup_closed_sessions()
+        try:
+            return self._launch_browser_context()
+        except PlaywrightError:
+            self._close_all_sessions()
+            return self._launch_browser_context()
+
+    def _launch_browser_context(self):
+        KUAISHOU_USER_DATA_DIR.mkdir(parents=True, exist_ok=True)
+        playwright = sync_playwright().start()
+        try:
+            context = playwright.chromium.launch_persistent_context(
+                user_data_dir=str(KUAISHOU_USER_DATA_DIR),
+                headless=False,
+                viewport=None,
+            )
+            page = context.pages[0] if context.pages else context.new_page()
+            session = {'playwright': playwright, 'context': context, 'page': page}
+            _sessions.append(session)
+            return context, page
+        except Exception:
+            playwright.stop()
+            raise
+
+    def _cleanup_closed_sessions(self):
+        for session in _sessions[:]:
+            if self._session_is_alive(session):
+                continue
+            self._close_session(session)
+
+    def _session_is_alive(self, session):
+        page = session.get('page')
+        context = session.get('context')
+        try:
+            if page and not page.is_closed():
+                return True
+            if context and context.pages:
+                return any(not candidate.is_closed() for candidate in context.pages)
+        except PlaywrightError:
+            return False
+        except Exception:
+            return False
+        return False
+
+    def _close_all_sessions(self):
+        for session in _sessions[:]:
+            self._close_session(session)
+
+    def _close_session(self, session):
+        try:
+            context = session.get('context')
+            if context:
+                context.close()
+        except Exception:
+            pass
+        try:
+            playwright = session.get('playwright')
+            if playwright:
+                playwright.stop()
+        except Exception:
+            pass
+        try:
+            _sessions.remove(session)
+        except ValueError:
+            pass
 
     def _try_upload_video(self, page, video_path, filled):
         path = Path(video_path).expanduser()
