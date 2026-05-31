@@ -2,9 +2,9 @@
 
 ## 1. 项目定位
 
-本项目是一个面向创作者的多平台内容适配与发布助手。用户只需要输入一份原始内容，系统就能生成公众号、知乎、B站、小红书等平台的适配草稿，并支持预览、模拟发布和后续真实发布扩展。
+本项目是一个面向创作者的多平台内容适配与发布助手。用户只需要输入一份原始内容，系统就能生成公众号、知乎、B站、小红书、抖音、快手等平台的适配草稿，并支持预览、模拟发布、浏览器辅助发布和发布历史管理。
 
-当前版本是 **Web-first MVP**：先完成内容输入、平台适配、草稿预览、模拟发布和发布历史，再逐步接入真实平台发布与桌面端能力。
+当前版本已从 Web-first MVP 演进为功能完整的多平台发布工具：支持 6 个平台的内容适配、5 个平台的浏览器辅助真实发布、公众号 API 草稿发布，以及模拟发布全流程。
 
 ---
 
@@ -13,11 +13,11 @@
 系统采用前后端分离架构：
 
 ```text
-Vue 前端
-  ↓ HTTP / JSON
-Flask 后端
-  ↓ SQLite / 适配器 / 发布任务
-本地数据与平台适配逻辑
+Vue 前端 (Vite, port 5173)
+  ↓ HTTP / JSON (开发环境通过 Vite proxy)
+Flask 后端 (port 5409)
+  ↓ SQLite / 适配器 / 发布器
+本地数据与平台自动化
 ```
 
 核心链路：
@@ -31,9 +31,10 @@ Flask 后端
   ↓
 前端展示预览与编辑
   ↓
-用户执行模拟发布
-  ↓
-后端记录发布任务与历史
+用户选择发布方式：
+  ├── 模拟发布 → 发布历史记录
+  ├── 浏览器辅助发布 → Playwright 自动化填充 → 人工确认 → 记录
+  └── 公众号 API 发布 → 微信接口创建草稿 → 记录
 ```
 
 ---
@@ -41,11 +42,14 @@ Flask 后端
 ## 3. 技术栈
 
 | 层级 | 技术 |
-| --- | --- |
-| 前端 | Vue 3 + Vite + Vue Router + Pinia + Element Plus |
+|------|------|
+| 前端 | Vue 3 + Vite + Vue Router + Pinia + Element Plus 2 |
+| 样式 | SCSS + CSS Custom Properties（设计 Token 系统） |
+| 图标 | @element-plus/icons-vue |
 | 后端 | Python + Flask |
 | 数据库 | SQLite |
-| 发布模式 | 先模拟发布，后真实发布 |
+| 浏览器自动化 | Playwright（B站、抖音、小红书、快手、知乎） |
+| API 发布 | 公众号微信接口 |
 | 桌面端 | 预留 Tauri 扩展位置 |
 
 ---
@@ -55,33 +59,78 @@ Flask 后端
 ```text
 creator-content-publisher/
 ├── backend/
-│   ├── app.py
-│   ├── config.py
-│   ├── db.py
-│   ├── init_db.py
-│   ├── adapters/
-│   ├── repositories/
-│   ├── routes/
-│   ├── services/
-│   ├── models/
-│   └── schemas/
+│   ├── app.py                    Flask 入口
+│   ├── config.py                 配置与环境变量
+│   ├── db.py                     数据库连接
+│   ├── init_db.py                数据库初始化与迁移
+│   ├── adapters/                 平台内容适配器
+│   │   ├── base_adapter.py       适配器基类
+│   │   ├── registry.py           适配器注册中心
+│   │   ├── wechat_official.py    公众号
+│   │   ├── zhihu.py              知乎
+│   │   ├── bilibili.py           B站
+│   │   ├── xiaohongshu.py        小红书
+│   │   ├── douyin.py             抖音
+│   │   └── kuaishou.py           快手
+│   ├── publishers/               平台发布器
+│   │   ├── registry.py           发布器注册
+│   │   ├── wechat_official.py    公众号 API 发布
+│   │   ├── zhihu_browser.py      知乎浏览器发布
+│   │   ├── bilibili_browser.py   B站浏览器发布
+│   │   ├── douyin_browser.py     抖音浏览器发布
+│   │   ├── xiaohongshu_browser.py 小红书浏览器发布
+│   │   └── kuaishou_browser.py   快手浏览器发布
+│   ├── repositories/             SQLite 数据访问层
+│   │   ├── content_repository.py
+│   │   ├── platform_draft_repository.py
+│   │   └── publish_task_repository.py
+│   ├── routes/                   HTTP API 路由
+│   │   ├── health.py             健康检查
+│   │   ├── platforms.py          平台列表
+│   │   ├── contents.py           内容 CRUD
+│   │   └── publish.py            发布接口
+│   ├── services/                 业务编排
+│   │   └── content_service.py    核心服务
+│   ├── models/                   领域模型（预留，当前空置）
+│   └── schemas/                  请求/响应模式（预留，当前空置）
 │
 ├── frontend/
 │   ├── index.html
 │   ├── package.json
 │   ├── vite.config.js
 │   └── src/
-│       ├── api/
+│       ├── App.vue               根组件
+│       ├── main.js               入口
+│       ├── api/                  API 请求封装
+│       │   ├── http.js           axios 实例
+│       │   ├── content.js        内容接口
+│       │   ├── platform.js       平台接口
+│       │   └── publish.js        发布接口
 │       ├── components/
+│       │   └── AppLayout.vue     全局布局（侧栏 + 内容区）
 │       ├── router/
+│       │   └── index.js          路由配置
 │       ├── stores/
+│       │   ├── app.js            应用状态
+│       │   └── content.js        内容状态
 │       ├── styles/
+│       │   └── main.scss         全局样式与设计 Token
+│       ├── utils/
+│       │   └── platform.js       平台名称映射
 │       └── views/
+│           ├── Dashboard.vue     仪表盘
+│           ├── ContentEditor.vue 内容创作
+│           ├── AdaptationCenter.vue 平台适配
+│           ├── PreviewCenter.vue 预览中心
+│           ├── PublishCenter.vue 发布中心
+│           ├── PublishHistory.vue 发布历史
+│           └── Settings.vue      系统设置
 │
 ├── docs/
-│   ├── api.md
-│   └── architecture.md
+│   ├── api.md                    API 文档
+│   └── architecture.md           架构文档（本文件）
 │
+├── .env.example                  环境变量模板
 ├── .gitignore
 ├── README.md
 ├── CLAUDE.md
@@ -94,53 +143,44 @@ creator-content-publisher/
 
 ### 5.1 前端层
 
-前端负责用户交互和状态展示，主要页面包括：
+前端负责用户交互和状态展示，主要页面：
 
-- `Dashboard`：项目概览
-- `ContentEditor`：内容输入与保存
-- `AdaptationCenter`：平台草稿查看与适配结果展示
-- `PreviewCenter`：各平台预览
-- `PublishCenter`：模拟发布与后续真实发布入口
-- `PublishHistory`：发布任务历史
-- `Settings`：系统设置
+- **Dashboard**：项目概览，统计卡片 + 最近内容列表
+- **ContentEditor**：内容输入与生成平台草稿
+- **AdaptationCenter**：平台草稿查看
+- **PreviewCenter**：左右分栏预览与编辑
+- **PublishCenter**：模拟发布 + 浏览器发布入口
+- **PublishHistory**：发布任务历史与状态追踪
+- **Settings**：平台配置说明
 
 前端职责：
-
 - 表单输入与校验
 - 页面路由切换
 - 调用后端 API
 - 展示平台草稿和发布结果
-- 管理页面级状态
+- 管理页面级状态（Pinia）
 
-建议遵循的原则：
-
-- 页面只负责展示和交互
+设计原则：
+- 设计 Token 集中在 `main.scss` 的 `:root` 中
 - API 请求统一放在 `src/api/`
 - 跨页面状态统一放在 `src/stores/`
-
----
+- 页面使用 `<AppLayout>` 包裹，侧栏统一管理
 
 ### 5.2 后端层
 
 后端负责业务逻辑、数据存储和平台适配。
 
-后端分层：
+分层：
 
 ```text
-routes       HTTP 接口层
-services     业务编排层
-repositories 数据访问层
-adapters     平台适配层
+routes       HTTP 接口层 → 参数校验、返回 JSON
+services     业务编排层 → 组织内容保存、适配、发布等流程
+repositories 数据访问层 → SQLite CRUD
+adapters     平台适配层 → 统一内容 → 平台草稿
+publishers   发布执行层 → 浏览器自动化 / API 调用
 ```
 
-职责划分：
-
-- `routes/`：接收请求、做基础参数校验、返回 JSON
-- `services/`：组织内容保存、适配、发布等流程
-- `repositories/`：只做 SQLite CRUD
-- `adapters/`：把统一内容转换成各平台草稿
-
-后端入口为 `backend/app.py`，它只负责创建 Flask 应用、注册路由、初始化数据库。
+入口为 `backend/app.py`，它只负责创建 Flask 应用、注册路由 Blueprint、初始化数据库。
 
 ---
 
@@ -148,79 +188,21 @@ adapters     平台适配层
 
 ### 6.1 Content
 
-统一内容模型，用于保存用户输入的一份原始内容。
+统一内容模型，用于保存用户输入的原始内容。
 
-字段：
-
-- `id`
-- `title`
-- `summary`
-- `body`
-- `cover_image`
-- `content_type`
-- `tags`
-- `created_at`
-- `updated_at`
-
-用途：
-
-- 作为平台适配的原始输入
-- 作为编辑和版本管理的基础对象
-
----
+字段：`id`、`title`、`summary`、`body`、`cover_image`、`video_path`、`content_type`、`tags`、`created_at`、`updated_at`
 
 ### 6.2 PlatformDraft
 
 平台草稿是内容适配后的结果。
 
-字段：
-
-- `id`
-- `content_id`
-- `platform`
-- `title`
-- `summary`
-- `body`
-- `tags`
-- `cover_image`
-- `extra_config`
-- `validation_warnings`
-- `created_at`
-- `updated_at`
-
-用途：
-
-- 展示某个平台的最终适配结果
-- 支持预览和模拟发布
-- 后续支持手工编辑和重新生成
-
----
+字段：`id`、`content_id`、`platform`、`title`、`summary`、`body`、`tags`、`cover_image`、`extra_config`、`validation_warnings`、`created_at`、`updated_at`
 
 ### 6.3 PublishTask
 
 发布任务记录一次模拟发布或真实发布。
 
-字段：
-
-- `id`
-- `content_id`
-- `platform_draft_id`
-- `platform`
-- `account_id`
-- `mode`
-- `status`
-- `title`
-- `error_message`
-- `publish_url`
-- `created_at`
-- `started_at`
-- `finished_at`
-
-用途：
-
-- 发布过程追踪
-- 发布历史展示
-- 后续扩展真实发布和重试机制
+字段：`id`、`content_id`、`platform_draft_id`、`platform`、`account_id`、`mode`、`status`、`title`、`error_message`、`publish_url`、`external_id`、`response_payload`、`created_at`、`started_at`、`finished_at`
 
 ---
 
@@ -236,90 +218,75 @@ adapters     平台适配层
 - 提示平台限制和格式问题
 - 输出平台草稿对象
 
-### 7.2 当前首批平台
+### 7.2 适配器接口
 
-- 公众号 `wechat_official`
-- 知乎 `zhihu`
-- B站 `bilibili`
-- 小红书 `xiaohongshu`
-
-### 7.3 适配器接口
-
-```text
-transform(content) -> platform_draft
+```python
+def transform(content) -> platform_draft
 ```
 
-### 7.4 设计原则
+### 7.3 设计原则
 
 - 平台差异放在适配器里，不放在页面里
-- 平台新增时只增加适配器，不修改核心业务流程
+- 新增平台时只增加适配器，不修改核心业务流程
 - 适配器优先返回可预览、可编辑的数据结构
 
 ---
 
-## 8. 前端数据流
+## 8. 发布层设计
 
-### 8.1 内容创建流程
+### 8.1 发布模式
+
+| 模式 | 说明 | 适用平台 |
+|------|------|---------|
+| `simulate` | 模拟发布，立即标记完成 | 所有平台 |
+| `browser` | Playwright 浏览器自动化填充，人工确认发布 | 知乎、B站、抖音、小红书、快手 |
+| `wechat_draft` | 微信公众号 API 创建草稿 | 公众号 |
+
+### 8.2 浏览器发布器通用流程
+
+```text
+获取草稿 → 创建发布任务(状态: running)
+  → 打开平台创作页
+  → 上传视频/图片
+  → 填充标题、正文、标签等字段
+  → 返回 manual_pending，等待用户人工确认最终发布
+  → 用户通过对话框确认完成 → 状态标记为 success
+```
+
+---
+
+## 9. 前端数据流
+
+### 9.1 内容创建流程
 
 ```text
 ContentEditor
   ↓ 调用 contentApi.create
 后端保存 Content
-  ↓
-返回 content_id
-  ↓
-调用 contentApi.adapt
-  ↓
-生成 PlatformDraft
-  ↓
-跳转 AdaptationCenter
+  ↓ 返回 content_id
+  ↓ 调用 contentApi.adapt
+  ↓ 生成 PlatformDraft
+  ↓ 跳转 AdaptationCenter
 ```
 
-### 8.2 预览流程
+### 9.2 预览流程
 
 ```text
-AdaptationCenter
+AdaptationCenter / PreviewCenter
   ↓ 获取 platform drafts
-PreviewCenter
-  ↓ 渲染平台样式
+  ↓ 渲染预览 + 编辑修改
+  ↓ contentApi.updateDraft 保存
 ```
 
-### 8.3 模拟发布流程
+### 9.3 发布流程
 
 ```text
 PublishCenter
   ↓ 选择平台草稿
-  ↓ 调用 publishApi.simulate
-后端创建 PublishTask
-  ↓
-PublishHistory 展示结果
+  ├── 模拟发布 → publishApi.simulate / simulateBatch
+  └── 真实发布 → 对应平台 browser/wechat API
+  ↓ 发布历史记录
 ```
-
----
-
-## 9. 后端业务流
-
-### 9.1 内容创建
-
-1. 前端提交原始内容
-2. 后端校验标题和正文
-3. 写入 `contents`
-4. 返回创建结果
-
-### 9.2 内容适配
-
-1. 前端传入目标平台列表
-2. 后端从 `contents` 读取原始内容
-3. 根据平台选择适配器
-4. 生成平台草稿并保存到 `platform_drafts`
-5. 返回适配结果
-
-### 9.3 模拟发布
-
-1. 前端选择某个 `platform_draft`
-2. 后端创建 `publish_tasks`
-3. 任务状态标记为 `simulated`
-4. 前端从历史接口查看结果
 
 ---
 
@@ -334,111 +301,85 @@ PublishHistory 展示结果
 返回格式统一为：
 
 ```json
-{
-  "code": 200,
-  "msg": "success",
-  "data": {}
-}
+{ "code": 200, "msg": "success", "data": {} }
 ```
 
-建议的核心接口：
-
-- `GET /api/health`
-- `GET /api/platforms`
-- `GET /api/contents`
-- `POST /api/contents`
-- `GET /api/contents/:id`
-- `PUT /api/contents/:id`
-- `POST /api/contents/:id/adapt`
-- `GET /api/contents/:id/platform-drafts`
-- `POST /api/publish/simulate`
-- `GET /api/publish/tasks`
-
-详细字段说明见 `docs/api.md`。
+完整接口文档见 `docs/api.md`。
 
 ---
 
 ## 11. 扩展更多平台的方式
 
-新增平台时遵循两层扩展：
+### 11.1 扩展适配器
 
-### 11.1 先扩展适配器
+在 `backend/adapters/` 新增平台适配器：
 
-在 `backend/adapters/` 新增一个平台适配器：
+- 继承 `BaseAdapter`
+- 定义 `platform_key`、`platform_name`、`description`
+- 实现 `transform(content)` 方法
+- 在 `backend/adapters/registry.py` 中注册
 
-- 定义平台名称
-- 定义标题和正文适配规则
-- 定义平台提示和约束
-- 返回统一草稿结构
+### 11.2 扩展发布器
 
-### 11.2 再扩展真实发布器
+在 `backend/publishers/` 新增发布器：
 
-后续如果接入真实发布，在发布层新增对应 Publisher：
-
-- 登录逻辑
-- 平台 Cookie
-- 页面自动化
-- 发布动作
-- 成功失败回写
+- 浏览器辅助发布：继承 Playwright 模式，实现 `publish(draft, auto_publish)` 方法
+- API 发布：实现平台 API 调用逻辑
+- 在 `backend/services/content_service.py` 中增加对应方法
+- 在 `backend/routes/publish.py` 中增加路由
+- 在 `frontend/src/api/publish.js` 中增加 API 封装
+- 在发布中心增加对应按钮
 
 ### 11.3 前端同步扩展
 
-前端只需要从 `/api/platforms` 拉取平台配置，不需要硬编码平台逻辑。
+前端通过 `/api/platforms` 拉取平台配置，发布按钮按平台 key 条件渲染。
 
 ---
 
 ## 12. 运行时数据
 
-本项目的运行时数据建议放在：
-
 ```text
 backend/data/
+  ├── app.db            SQLite 数据库
+  └── browser/          浏览器登录态
+      ├── zhihu/
+      ├── xiaohongshu/
+      ├── douyin/
+      ├── bilibili/
+      └── kuaishou/
 ```
 
-包括：
-
-- SQLite 数据库
-- 运行日志
-- 临时导出数据
-- 后续账号 Cookie 和素材
-
-运行时数据不应直接提交到 Git。
+运行时数据由 `.gitignore` 排除，不提交到 Git。
 
 ---
 
 ## 13. 当前版本边界
 
-当前版本重点是：
+当前版本已实现：
 
-- 内容编辑
-- 平台适配
-- 平台草稿
-- 预览
-- 模拟发布
+- ✅ 内容创作、编辑、删除
+- ✅ 6 个平台内容适配
+- ✅ 平台草稿预览与编辑
+- ✅ 模拟发布（单个 + 批量）
+- ✅ 公众号 API 草稿发布
+- ✅ 知乎浏览器发布助手
+- ✅ B站浏览器辅助发布
+- ✅ 小红书浏览器发布助手
+- ✅ 抖音浏览器辅助发布
+- ✅ 快手浏览器发布助手
+- ✅ 发布历史管理与人工确认
+- ✅ 完整的设计 Token 系统
 
-当前版本暂不重点实现：
+当前版本暂不包含：
 
-- 公众号 / 知乎真实登录
-- 浏览器自动化发布
-- 复杂 AI 改写
-- 复杂任务调度
+- AI 内容改写
 - 多用户权限系统
-
-这些能力会在 MVP 稳定后逐步加入。
-
----
-
-## 14. 推荐开发顺序
-
-1. 完善内容创建与列表
-2. 完善平台适配器
-3. 完善平台草稿预览
-4. 完善模拟发布
-5. 再接真实发布器
-6. 最后再考虑 Tauri 桌面端
+- Tauri 桌面端打包
+- 账号管理系统
+- 发布任务重试机制
 
 ---
 
-## 15. 总结
+## 14. 总结
 
-本项目采用“统一内容模型 + 平台适配器 + 平台草稿 + 模拟发布”的架构方式，把创作者的一份内容转换成多个平台可用的发布版本。前端负责输入、展示和预览，后端负责存储、适配和发布任务。通过分层设计，项目可以稳定地从 Web MVP 演进到可扩展的多平台发布系统。
+本项目采用"统一内容模型 + 平台适配器 + 平台发布器"的架构方式，把创作者的一份内容转换成多个平台可用的发布版本。前端负责输入、展示和预览，后端负责存储、适配和发布任务。通过分层设计，项目已从 Web MVP 演进为功能完整的多平台发布工具，并支持后续扩展更多平台。
