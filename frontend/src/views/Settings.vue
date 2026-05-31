@@ -89,6 +89,23 @@
     </el-card>
 
     <el-card class="settings-card">
+      <template #header>小红书浏览器发布助手</template>
+      <el-alert
+        type="warning"
+        show-icon
+        :closable="false"
+        title="小红书当前作为发布助手：系统会打开创作页、辅助上传视频并填充内容，不会自动点击最终发布按钮，也不会绕过验证码、安全验证或平台风控。"
+      />
+      <el-steps class="settings-steps" direction="vertical" :active="4">
+        <el-step title="首次使用时，点击小红书发布助手后在打开的小红书创作中心手动登录" />
+        <el-step title="登录态会保存在本机浏览器数据目录 backend/data/browser/xiaohongshu，类似普通浏览器缓存" />
+        <el-step title="系统会尝试上传视频、填充标题、正文和话题，并设置封面和内容声明" />
+        <el-step title="遇到登录、验证码、安全验证、风控或页面结构变化时，请在小红书页面人工处理" />
+        <el-step title="确认发布或保存后，可回到系统记录发布完成" />
+      </el-steps>
+    </el-card>
+
+    <el-card class="settings-card">
       <template #header>快手浏览器发布助手</template>
       <el-alert
         type="warning"

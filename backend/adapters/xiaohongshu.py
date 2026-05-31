@@ -21,6 +21,13 @@ class XiaohongshuAdapter(BaseAdapter):
             'body': body,
             'tags': tags,
             'cover_image': content.get('cover_image', ''),
-            'extra_config': {'layout': 'note', 'tone': 'friendly'},
+            'extra_config': {
+                'layout': 'note',
+                'tone': 'friendly',
+                'video_path': content.get('video_path', ''),
+                'thumbnail_path': content.get('cover_image', ''),
+                'content_declaration': '',
+                'original_declaration': '',
+            },
             'validation_warnings': warnings,
         }

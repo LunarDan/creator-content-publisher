@@ -69,6 +69,16 @@
                 浏览器保存到 B站草稿
               </el-button>
               <el-button
+                v-if="draft.platform === 'xiaohongshu'"
+                size="small"
+                type="primary"
+                plain
+                :loading="browserPublishingId === draft.id"
+                @click.stop="openXiaohongshuBrowserAssistant(draft)"
+              >
+                浏览器打开小红书发布助手
+              </el-button>
+              <el-button
                 v-if="draft.platform === 'kuaishou'"
                 size="small"
                 type="primary"
@@ -128,8 +138,10 @@
             </el-descriptions-item>
             <el-descriptions-item label="标签">{{ (browserResult.draft.tags || []).join('、') || '-' }}</el-descriptions-item>
             <el-descriptions-item label="视频文件">{{ browserResult.draft.video_path || `未填写，请在 ${browserPlatformName} 页面手动上传` }}</el-descriptions-item>
-            <el-descriptions-item v-if="browserTask?.platform === 'kuaishou'" label="封面图片">{{ browserResult.draft.thumbnail_path || '未填写，请在快手页面手动设置' }}</el-descriptions-item>
+            <el-descriptions-item v-if="['kuaishou', 'xiaohongshu'].includes(browserTask?.platform)" label="封面图片">{{ browserResult.draft.thumbnail_path || `未填写，请在 ${browserPlatformName} 页面手动设置` }}</el-descriptions-item>
             <el-descriptions-item v-if="browserTask?.platform === 'kuaishou'" label="作者声明">{{ browserResult.draft.author_declaration || '未填写，请在快手页面手动设置' }}</el-descriptions-item>
+            <el-descriptions-item v-if="browserTask?.platform === 'xiaohongshu'" label="内容声明">{{ browserResult.draft.content_declaration || '未填写，请在小红书页面手动设置' }}</el-descriptions-item>
+            <el-descriptions-item v-if="browserTask?.platform === 'xiaohongshu'" label="原创声明">{{ browserResult.draft.original_declaration || '未开启，请在小红书页面手动设置' }}</el-descriptions-item>
             <el-descriptions-item label="已尝试填充">{{ (browserResult.filled || []).join('、') || '暂无' }}</el-descriptions-item>
           </el-descriptions>
           <el-input v-model="publishUrl" class="publish-url" placeholder="可选：发布后的内容链接，不填也可以确认完成" />
@@ -140,7 +152,9 @@
             <el-button v-if="browserDraft?.platform === 'zhihu'" @click="copyDraftText(browserResult.draft.cover_image)">复制封面路径</el-button>
             <el-button v-if="browserTask?.platform === 'bilibili'" @click="copyDraftText(browserResult.draft.video_path)">复制视频路径</el-button>
             <el-button v-if="browserTask?.platform === 'kuaishou'" @click="copyDraftText(browserResult.draft.video_path)">复制视频路径</el-button>
+            <el-button v-if="browserTask?.platform === 'xiaohongshu'" @click="copyDraftText(browserResult.draft.video_path)">复制视频路径</el-button>
             <el-button v-if="browserTask?.platform === 'kuaishou'" @click="copyDraftText(browserResult.draft.thumbnail_path)">复制封面路径</el-button>
+            <el-button v-if="browserTask?.platform === 'xiaohongshu'" @click="copyDraftText(browserResult.draft.thumbnail_path)">复制封面路径</el-button>
           </div>
         </div>
         <template #footer>
@@ -182,6 +196,9 @@ const browserDialogTitle = computed(() => `${browserPlatformName.value}浏览器
 const browserDialogTip = computed(() => {
   if (browserTask.value?.platform === 'kuaishou') {
     return '系统会尝试上传视频、填充描述/标签、设置封面和作者声明；不会自动点击最终发布按钮，遇到登录、验证码或风控时需要你在快手页面手动处理。'
+  }
+  if (browserTask.value?.platform === 'xiaohongshu') {
+    return '系统会尝试上传视频、填充标题/正文/话题、设置封面和内容声明；不会自动点击最终发布按钮，遇到登录、验证码或风控时需要你在小红书页面手动处理。'
   }
   return '系统会尝试自动填充标题、简介并点击保存草稿；如果遇到登录、验证码、风控或无法确认成功，需要你在 B站页面手动保存。'
 })
@@ -269,6 +286,9 @@ function publishDraft(draft) {
   if (draft.platform === 'bilibili') {
     return publishApi.browserBilibili(draft.id, true)
   }
+  if (draft.platform === 'xiaohongshu') {
+    return publishApi.browserXiaohongshu(draft.id)
+  }
   if (draft.platform === 'kuaishou') {
     return publishApi.browserKuaishou(draft.id)
   }
@@ -354,6 +374,23 @@ async function saveBilibiliDraftWithBrowser(draft) {
     ElMessage.warning('已打开浏览器，仍需要你在 B站页面人工确认草稿')
   } catch (error) {
     ElMessage.error(error.response?.data?.msg || 'B站浏览器保存草稿启动失败')
+  } finally {
+    browserPublishingId.value = null
+  }
+}
+
+async function openXiaohongshuBrowserAssistant(draft) {
+  browserPublishingId.value = draft.id
+  browserDraft.value = draft
+  try {
+    const res = await publishApi.browserXiaohongshu(draft.id)
+    browserTask.value = res.data.data.task
+    browserResult.value = res.data.data.result
+    publishUrl.value = ''
+    browserDialogVisible.value = true
+    ElMessage.warning('已打开小红书发布助手，请在小红书页面人工检查并完成发布')
+  } catch (error) {
+    ElMessage.error(error.response?.data?.msg || '小红书浏览器发布助手启动失败')
   } finally {
     browserPublishingId.value = null
   }
